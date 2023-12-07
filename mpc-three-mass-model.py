@@ -28,7 +28,7 @@ class Controller:
     
     def createModel(self): 
 
-        model_name = 'model'
+        model_name = 'model_three_mass'
 
         x1 = SX.sym('x1')
         x2 = SX.sym('x2')
@@ -39,30 +39,25 @@ class Controller:
         x3dot = SX.sym('x3dot')
 
         Ff = SX.sym('Ff')
-
         F_act = SX.sym('F_act')
-
         gamma = SX.sym('gamma')
 
         f_expl = vertcat(
-            x1dot,
-            x2dot,
+            x1dot, 
+            x2dot, 
             x3dot,
             (F_act - self.b[0]*x1dot - self.k*(x1 - x3))/self.m[0],
-            (self.b[1]*x2dot - self.k*(x2 - x3))/self.m[1],
-            (- Ff - self.b[2]*x3dot - self.k*(-x1 - x2 + 2*x3))/self.m[2],
-            self.sigma*(x3dot - (Ff*self.mod_approx(x3dot))/(self.mu*gamma*self.k*(x2-x1)))
+            # 0,
+            (- self.b[1]*x2dot - self.k*(x2 - x3))/self.m[1], 
+            (-Ff - self.b[2]*x3dot - self.k*(-x1 - x2 + 2*x3))/self.m[2], 0
+            # self.sigma*(x3dot - (Ff*self.mod_approx(x3dot))/(self.mu*gamma*self.k*(x2-x1 + 1e-6)))
         ) 
 
         x = vertcat(x1, x2, x3, x1dot, x2dot, x3dot, Ff)
-
         u = vertcat(F_act)
+        params = vertcat(gamma)
 
         model = AcadosModel()
-
-        gamma = SX.sym('gamma')
-
-        params = vertcat(gamma)
 
         model.f_expl_expr = f_expl
         model.x = x
@@ -71,6 +66,8 @@ class Controller:
         model.p = params
 
         return model
+
+    #Tendon-SheathActuatedRobotsandTransmissionSystem
 
     def mod_approx(self, x):
 
@@ -94,8 +91,8 @@ class Controller:
         ocp.cost.cost_type = 'NONLINEAR_LS'
         ocp.cost.cost_type_e = 'NONLINEAR_LS'
 
-        ocp.model.cost_y_expr = vertcat(model.p[0]*model.x[0] + model.p[1]*model.x[1], model.u)
-        ocp.model.cost_y_expr_e = vertcat(model.p[0]*model.x[0] + model.p[1]*model.x[1])
+        ocp.model.cost_y_expr = vertcat(model.x[1] - model.x[2], model.u)
+        ocp.model.cost_y_expr_e = vertcat(model.x[1] - model.x[2])
         # ocp.model.cost_y_expr_0 = vertcat(model.p[0]*model.x[0] + model.p[1]*model.x[1], model.u)
         # ocp.cost.yref_0 = np.zeros((ny, ))
         ocp.cost.yref  = np.zeros((2, ))
@@ -125,7 +122,7 @@ class Controller:
 
         ocp.dims.N = N_horizon
         # ocp.solver_options.qp_solver_cond_N = N_horizon
-        ocp.parameter_values = np.array([self.alpha_ten, self.alpha_h])
+        ocp.parameter_values = np.array([self.gamma])
 
         # set prediction horizon
         ocp.solver_options.tf = Tf
@@ -138,3 +135,62 @@ class Controller:
 
         return acados_ocp_solver, acados_integrator
 
+def sim_example():  
+
+    # b, m, mu, gamma, k, sigma
+
+    b = np.array([10, 10, 10])
+    m = np.array([10, 10, 10])
+    mu = 0.45
+    gamma = 5
+    k = 4
+    sigma = 0.5
+
+    obj = Controller(b, m, mu, gamma, k, sigma)
+    solver, integrator = obj.createSolver(np.zeros(7), 30, 40, 1, 2)
+
+    x0 = np.array([0.0, 0.0, 0.0, 0, 0, 0, 0])
+    num_sim_time = 5000
+
+    states = np.zeros((num_sim_time+1, 7))
+    simU = np.zeros((num_sim_time, 1))
+    t_array = np.zeros(num_sim_time)
+    t = 0 
+
+    for i in range(num_sim_time): 
+
+        t += 0.05
+        t_array[i] = t
+
+        # solver.set(0, 'lbx', x0)
+        # solver.set(0, 'ubx', x0)
+        # solver.solve() # Testing the solver.
+
+        if i > num_sim_time/2 : 
+        # if i > num_sim_time : 
+
+        # u = 5*np.sin(i*freq) + 5
+            u = 0
+
+        else: 
+
+            u = 5
+
+        simU[i, :] = u
+
+        integrator.set('x', x0)
+        integrator.set('u', simU[i, :])
+        integrator.solve()
+        x0 = integrator.get('x')
+        states[i+1,:] = x0
+
+        print(x0)
+
+    plt.plot(t_array, states[0:num_sim_time, 6])
+    # plt.plot(t_array, simU)
+    plt.show()
+    plt.plot(t_array, states[0:num_sim_time, 0:6])
+    plt.show()
+
+
+sim_example()
