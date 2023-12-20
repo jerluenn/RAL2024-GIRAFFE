@@ -1,3 +1,4 @@
+from re import X
 from casadi import *
 import numpy as np
 
@@ -17,7 +18,7 @@ from scipy.integrate import BDF
 class Controller: 
 
 
-    def __init__(self, b, m, mu, gamma, k, sigma): 
+    def __init__(self, b, m, mu, gamma, k, sigma, k_env): 
 
         self.b = b 
         self.m = m 
@@ -25,6 +26,7 @@ class Controller:
         self.gamma = gamma 
         self.k = k 
         self.sigma = sigma
+        self.k_env = k_env
     
     def createModel(self): 
 
@@ -46,11 +48,11 @@ class Controller:
             x1dot, 
             x2dot, 
             x3dot,
-            (F_act - self.b[0]*x1dot - self.k*(x1 - x3))/self.m[0],
+            (F_act - self.b[0]*(x1dot) - self.k*(x1 - x3))/self.m[0], 
             # 0,
-            (- self.b[1]*x2dot - self.k*(x2 - x3))/self.m[1], 
-            (-Ff - self.b[2]*x3dot - self.k*(-x1 - x2 + 2*x3))/self.m[2], 0
-            # self.sigma*(x3dot - (Ff*self.mod_approx(x3dot))/(self.mu*gamma*self.k*(x2-x1 + 1e-6)))
+            (- self.k_env*x2 - self.b[1]*(x2dot) - self.k*(x2 - x3))/self.m[1], 
+            (- Ff - self.b[2]*(x3dot) - self.k*(-x1 - x2 + 2*x3))/self.m[2], 
+            self.sigma*(x3dot - ((Ff*self.mod_approx(x3dot))/(self.k*(x1-x3)*(1 - exp(-self.mu*gamma)) + 1e-6)))
         ) 
 
         x = vertcat(x1, x2, x3, x1dot, x2dot, x3dot, Ff)
@@ -69,9 +71,15 @@ class Controller:
 
     #Tendon-SheathActuatedRobotsandTransmissionSystem
 
+    def sgn_approx(self, x1): 
+
+        epsilon = 1e-10
+
+        return tanh((x1)/epsilon)
+
     def mod_approx(self, x):
 
-        epsilon = 1e-2
+        epsilon = 1e-10
 
         return sqrt(x**2 + epsilon)
 
@@ -139,19 +147,22 @@ def sim_example():
 
     # b, m, mu, gamma, k, sigma
 
-    b = np.array([10, 10, 10])
-    m = np.array([10, 10, 10])
+    b = np.array([350, 1000, 1000])
+    m = np.array([0.2, 1.5, 0.05])
     mu = 0.45
-    gamma = 5
-    k = 4
-    sigma = 0.5
+    gamma = 1
+    k = 3e5
+    sigma = 1.2e5
+    k_env = 500
+    ref_tension1 = 10
+    ref_tension2 = 0.5
 
-    obj = Controller(b, m, mu, gamma, k, sigma)
-    solver, integrator = obj.createSolver(np.zeros(7), 30, 40, 1, 2)
+    obj = Controller(b, m, mu, gamma, k, sigma, k_env)
+    solver, integrator = obj.createSolver(np.zeros(7), 30, 40, 1, 0.02)
 
     x0 = np.array([0.0, 0.0, 0.0, 0, 0, 0, 0])
-    num_sim_time = 5000
-
+    num_sim_time = 1500
+    
     states = np.zeros((num_sim_time+1, 7))
     simU = np.zeros((num_sim_time, 1))
     t_array = np.zeros(num_sim_time)
@@ -166,31 +177,45 @@ def sim_example():
         # solver.set(0, 'ubx', x0)
         # solver.solve() # Testing the solver.
 
-        if i > num_sim_time/2 : 
+        freq = 0.01
+
+        if i > 750 : 
         # if i > num_sim_time : 
 
-        # u = 5*np.sin(i*freq) + 5
-            u = 0
+            # u = 5*np.sin(i*freq) + 5
+            u = ref_tension2
 
         else: 
 
-            u = 5
+            u = ref_tension1
 
         simU[i, :] = u
 
         integrator.set('x', x0)
         integrator.set('u', simU[i, :])
+        integrator.set('p', gamma)
         integrator.solve()
         x0 = integrator.get('x')
         states[i+1,:] = x0
 
         print(x0)
 
+    print("Total tension input: ", ref_tension2)
+    print("Expected tension output: ", ref_tension2*np.exp(-mu*gamma))
+    print("Total tension loss: ", ref_tension2 - ref_tension2*np.exp(-mu*gamma))
+    print("Steady state friction: ", x0[6])
+
     plt.plot(t_array, states[0:num_sim_time, 6])
     # plt.plot(t_array, simU)
     plt.show()
     plt.plot(t_array, states[0:num_sim_time, 0:6])
+    plt.legend(['x1', 'x2', 'x3', 'x1dot', 'x2dot', 'x3dot'])
     plt.show()
-
+    plt.plot(t_array, -k*((states[0:num_sim_time, 1]) - (states[0:num_sim_time, 2])))
+    plt.plot(t_array, -k*((states[0:num_sim_time, 2]) - (states[0:num_sim_time, 0])))
+    plt.show()
+    plt.plot(-k*((states[0:num_sim_time, 2]) - (states[0:num_sim_time, 0])),-k*((states[0:num_sim_time, 1]) - (states[0:num_sim_time, 2])))
+    # plt.plot(t_array, k_env*((states[0:num_sim_time, 2])))
+    plt.show()
 
 sim_example()
