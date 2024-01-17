@@ -1,0 +1,41 @@
+{
+    "acados_include_path": "/home/jerluen/acados/include",
+    "acados_lib_path": "/home/jerluen/acados/lib",
+    "code_export_directory": "c_generated_code",
+    "dims": {
+        "np": 1,
+        "nu": 1,
+        "nx": 3,
+        "nz": 0
+    },
+    "model": {
+        "dyn_disc_fun": null,
+        "dyn_disc_fun_jac": null,
+        "dyn_disc_fun_jac_hess": null,
+        "dyn_ext_fun_type": "casadi",
+        "dyn_source_discrete": null,
+        "gnsf": {
+            "nontrivial_f_LO": 1,
+            "purely_linear": 0
+        },
+        "name": "control_model"
+    },
+    "parameter_values": [
+        5
+    ],
+    "problem_class": "SIM",
+    "solver_options": {
+        "Tsim": 0.02,
+        "collocation_type": "GAUSS_LEGENDRE",
+        "integrator_type": "ERK",
+        "output_z": false,
+        "sens_adj": false,
+        "sens_algebraic": false,
+        "sens_forw": true,
+        "sens_hess": false,
+        "sim_method_jac_reuse": 0,
+        "sim_method_newton_iter": 3,
+        "sim_method_num_stages": 4,
+        "sim_method_num_steps": 10
+    }
+}
