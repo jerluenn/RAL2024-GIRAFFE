@@ -17,26 +17,26 @@ from scipy.integrate import BDF
 
 class Hysteresis_MPC_Controller: 
 
-    def __init__(self, alpha_ten, alpha_h, rho, sigma, gamma_tension, n): 
+    def __init__(self, rho, mu, sigma, kappa): 
 
-        self.alpha_ten = alpha_ten
-        self.alpha_h = alpha_h
+        self.mu = mu
+        self.sigma = sigma
         self.rho = rho
         self.sigma = sigma
-        self.gamma_tension = gamma_tension
-        self.n = n
+        self.kappa = kappa
 
     def createModel(self): 
 
-        model_name = 'hysteresis_model'
+        model_name = 'asymmetric-hysteresis_model'
 
-        tension = SX.sym('tension')
-        h = SX.sym('h')
+        zeta = SX.sym('zeta')
+        x = SX.sym('x')
+        x_dot = SX.sym('x_dot')
 
-        x = vertcat(tension, h)
+        x = vertcat(zeta, x, x_dot)
         
-        tension_des = SX.sym('tension_des')
-        u = vertcat(tension_des)
+        F = SX.sym('F')
+        u = vertcat(F)
 
         tension_dot = (1/self.gamma_tension)*(tension_des - tension)
 
@@ -120,9 +120,21 @@ class Hysteresis_MPC_Controller:
 
     def mod_approx(self, x):
 
-        epsilon = 1e-5
+        epsilon = 1e-6
 
         return sqrt(x**2 + epsilon)
+
+    def sgn_approx(self, x): 
+
+        epsilon = 1e-6
+
+        return tanh(x/epsilon)
+
+    def step_approx(self, x): 
+
+        epsilon = 1e-6
+
+        return 0.5 + 0.5*tanh(x/epsilon)
 
 
 
@@ -186,62 +198,4 @@ def sim_example():
     plt.show()
 
 
-def control_example(): 
 
-    obj = Hysteresis_MPC_Controller(0.4, -0.1, 3.0, 1.0, 1.0, 3)
-    solver, integrator = obj.createSolver(np.zeros(2), 30, 40, 1, 2)
-
-    x0 = np.zeros(2)
-    num_sim_time = 1000
-
-    states = np.zeros((num_sim_time+1, 3))
-    simU = np.zeros((num_sim_time, 1))
-    simRef = np.zeros((num_sim_time, 1))
-    t_array = np.zeros(num_sim_time)
-    t = 0 
-    freq = 0.05
-
-
-    for i in range(num_sim_time): 
-
-        for k in range(20): 
-
-            solver.cost_set(k, 'yref', np.array([5*np.sin(freq*i)+5, 0]))
-
-        t += 0.05
-        t_array[i] = t
-        simRef[i, :] = 5*np.sin(freq*i)+5
-        solver.set(0, 'lbx', x0)
-        solver.set(0, 'ubx', x0)
-
-        solver.solve()
-
-        simU[i, :] = solver.get(0, 'u')
-
-        print(simU[i, :])
-
-        integrator.set('x', x0)
-        integrator.set('u', simU[i, :])
-        integrator.solve()
-        x0 = integrator.get('x')
-        states[i+1,0:2] = x0
-        states[i+1,2] = obj.alpha_ten*x0[0] + obj.alpha_h*x0[1]
-
-
-
-    plt.plot(states[:, 0], states[:, 2])
-
-    plt.show()
-
-    plt.plot(t_array, states[0:num_sim_time, 1])
-    plt.plot(t_array, states[0:num_sim_time, 0])
-
-    plt.show()
-
-    plt.plot(t_array, states[0:num_sim_time, 2])
-    plt.plot(t_array, simRef)
-
-    plt.show()
-
-sim_example()
-# control_example()

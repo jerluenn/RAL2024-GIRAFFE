@@ -12,7 +12,7 @@ def mod_approx_sim(x):
 
 def mod_approx_control(x): 
 
-    epsilon = 1e-4
+    epsilon = 1e-2
 
     return sqrt(x**2 + epsilon)
 
@@ -58,19 +58,20 @@ def export_sim_model():
 
     V = T_dot/k
     Fc = T*(1 - exp(-mu*gamma))
+    # Fc = T*exp(-mu*gamma)
 
     # dynamics
 
     f_expl = vertcat(T_dot, 
         a[0]*T + a[1]*T_dot + F, 
-        ((V - (Ff/(Fc + 1e-2))*mod_approx_sim(V))*sigma)
+        ((V - (Ff/(Fc + 1e-1))*mod_approx_sim(V))*sigma)
         )
 
     f_impl = xdot - f_expl
 
     model = AcadosModel()
 
-    model.con_h_expr = (((V - (Ff/(Fc + 1e-2))*mod_approx_sim(V))*sigma)) - T_dot
+    # model.con_h_expr = (((V - (Ff/(Fc + 1e-1))*mod_approx_sim(V))*sigma)) - T_dot
 
     model.f_impl_expr = f_impl
     model.f_expl_expr = f_expl
@@ -83,7 +84,7 @@ def export_sim_model():
 
     return model
 
-def export_sim_solver(model): 
+def export_sim_solver(model, N, h): 
 
     sim = AcadosSim()
 
@@ -144,6 +145,7 @@ def export_control_model():
 
     V = T_dot/k
     Fc = T*(1 - exp(-mu*gamma))
+    # Fc = T*exp(-mu*gamma)
 
     # dynamics
 
@@ -198,7 +200,7 @@ def export_ocp_solver(model, N, h, Q, R, Fmax=80, use_cython=False):
 
     ocp.cost.W_e = Q
 
-    ocp.solver_options.levenberg_marquardt = 10.0
+    ocp.solver_options.levenberg_marquardt = 100.0
 
     x = ocp.model.x
     u = ocp.model.u

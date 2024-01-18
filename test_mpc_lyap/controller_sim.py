@@ -8,20 +8,22 @@ from controller_solver import *
 Tf = 1.0  # prediction horizon
 N = 50  # number of discretization steps
 T = 30.00  # maximum simulation time[s]
-Q = block_diag(1e7, 50) 
+Q = block_diag(1e5, 50) 
 R = np.array([10])
 h = Tf/N
 
 # load model
-model = export_control_model()
-solver, plant = export_ocp_solver(model, N, h, Q, R)
+control_model = export_control_model()
+sim_model = export_sim_model()
+solver = export_ocp_solver(control_model, N, h, Q, R)
+plant = export_sim_solver(sim_model, N, h)
 
 # dimensions
-nx = model.x.size()[0]
-nu = model.u.size()[0]
+nx = control_model.x.size()[0]
+nu = control_model.u.size()[0]
 ny = nx + nu
 # Nsim = int(T * N / Tf)
-Nsim = 1000
+Nsim = 50
 
 simX = np.ndarray((Nsim, nx))
 simU = np.ndarray((Nsim, nu))
@@ -41,12 +43,12 @@ for i in range(N):
 
 for i in range(Nsim): 
 
-    # solver.set(0, 'lbx', x0)
-    # solver.set(0, 'ubx', x0)
+    solver.set(0, 'lbx', x0)
+    solver.set(0, 'ubx', x0)
 
-    # solver.solve()
+    solver.solve()
 
-    # u = solver.get(0, 'u')
+    u = solver.get(0, 'u')
 
     # # print(u)
 
