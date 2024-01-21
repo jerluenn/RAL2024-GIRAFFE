@@ -49,13 +49,13 @@ class Asymmetric_Hysteresis_MPC_Controller:
 
         z = vertcat(Ff)
 
-        xdotdot_expl_expr = (self.a[0]*x - self.a[1]*xdot + F)
+        xdotdot_expl_expr = (-self.a[0]*x - self.a[1]*xdot + F)
 
-        f1 = self.kappa[0]*self.mod_approx(x_dot)/(self.mod_approx(self.kappa[1]*xdotdot) + 1)
-        f2 = self.kappa[3]*self.mod_approx(x_dot)/(self.mod_approx(xdotdot) + self.kappa[4])
+        f1 = (self.kappa[0]*self.mod_approx(x_dot))/(self.mod_approx(self.kappa[1]*xdotdot_expl_expr) + 1)
+        f2 = (self.kappa[3]*self.mod_approx(x_dot))/(self.mod_approx(xdotdot_expl_expr) + self.kappa[4])
 
         A1 = self.mu[0]*exp(-f1) 
-        A2 = self.mu[1]*(1-exp(self.mod_approx(self.kappa[2]*xdotdot)))
+        A2 = self.mu[1]*(1-exp(self.mod_approx(self.kappa[2]*xdotdot_expl_expr)))
         A3 = self.mu[2]*exp(-f2)
 
         f_expl = []
@@ -64,7 +64,7 @@ class Asymmetric_Hysteresis_MPC_Controller:
                 xdot - x_dot,
                 xdotdot - (-self.a[0]*x - self.a[1]*xdot + F), 
                 zetadot - (xdot - self.sigma*zeta*((self.mod_approx(x_dot))/(Ff + 1e-6))),
-                Ff - self.step_approx(x_dot)*(self.rho[0] + A1 + self.step_approx(xdotdot)*A2) - self.step_approx(-x_dot)*(self.rho[1] + self.sgn_approx(xdotdot)*A3)
+                Ff - self.step_approx(x_dot)*(self.rho[0] + A1 + self.step_approx(xdotdot_expl_expr)*A2) - self.step_approx(-x_dot)*(self.rho[1] + self.sgn_approx(xdotdot_expl_expr)*A3)
         )
 
         model = AcadosModel()
@@ -154,7 +154,7 @@ class Asymmetric_Hysteresis_MPC_Controller:
         ocp.solver_options.integrator_type = 'IRK'
         ocp.solver_options.sim_method_newton_iter = 10
         ocp.solver_options.sim_method_num_stages = 4
-        ocp.solver_options.sim_method_num_steps = 5
+        ocp.solver_options.sim_method_num_steps = 1
         ocp.solver_options.levenberg_marquardt = 1.0
 
         if RTI:
@@ -180,19 +180,19 @@ class Asymmetric_Hysteresis_MPC_Controller:
 
     def mod_approx(self, x):
 
-        epsilon = 1e-3
+        epsilon = 1e-10
 
         return sqrt(x**2 + epsilon)
 
     def sgn_approx(self, x): 
 
-        epsilon = 1e-3
+        epsilon = 1e-10
 
         return tanh(x/epsilon)
 
     def step_approx(self, x): 
 
-        epsilon = 1e-3
+        epsilon = 1e-10
 
         return 0.5 + 0.5*tanh(x/epsilon)
 
@@ -203,16 +203,18 @@ def sim_example():
     # rho 2, mu 3, sigma 1, kappa 5, a 2
 
     a = np.array([1, 2])
-    rho = np.array([2.097, 3.960])
-    mu = np.array([1.368, 1.597,-1.855])
+    rho = np.array([10, 20])
+    # rho = np.zeros(3)
+    mu = np.array([10, 0.05, -5])
+    # mu = np.zeros(3)
     kappa = np.array([0.172, 1.228, 0.016, 5.549, 0.005])
-    sigma = 17.57
+    sigma = 2.57
 
     obj = Asymmetric_Hysteresis_MPC_Controller(rho, mu, sigma, kappa, a)
     solver, integrator = obj.createSolver(np.zeros(3), 100, 50, 1, 1)
 
     x0 = np.zeros(3)
-    num_sim_time = 1300
+    num_sim_time = 2000
 
     states = np.zeros((num_sim_time+1, 4))
     simU = np.zeros((num_sim_time, 1))
@@ -233,11 +235,12 @@ def sim_example():
         if i > num_sim_time/2 : 
 
         # u = 5*np.sin(i*freq) + 5
+            u = 0.01
             u = 0
 
         else: 
 
-            u = 0.01
+            u = 10
 
         simU[i, :] = u
 
@@ -248,19 +251,25 @@ def sim_example():
         integrator.solve()
         x0 = integrator.get('x')
         z = integrator.get('z')
+        print("states, z: ", x0, z)
+        print(integrator.get('time_tot'))
         states[i+1,0:3] = x0
         states[i+1, 3] = z
         # states[i+1,2] = obj.alpha_ten*x0[0] + obj.alpha_h*x0[1]
 
 
 
-    plt.plot(obj.sigma*states[:, 0], states[:, 3])
+    plt.plot(states[:, 0], states[:,0] - states[:, 2])
 
     plt.show()
 
     plt.plot(t_array, states[0:num_sim_time, 1])
     plt.plot(t_array, states[0:num_sim_time, 0])
     plt.plot(t_array, states[0:num_sim_time, 2])
+
+    plt.show()
+
+    plt.plot(t_array, states[0:num_sim_time, 3])
 
     plt.show()
 
