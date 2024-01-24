@@ -55,12 +55,13 @@ class Asymmetric_Hysteresis_MPC_Controller:
 
         self.rho = SX.zeros(2)
 
-        self.rho[0] = (1-self.alpha[0])*tau_ss
+        self.rho[0] = (1-self.alpha[0])*tau_ss 
         self.rho[1] = (1-self.alpha[1])*tau_ss
 
         self.mu = SX.zeros(3)
 
         self.mu[0] = self.alpha[0]*tau_ss
+        self.mu[1] = self.mu_numpy[1]
         self.mu[2] = -self.alpha[1]*tau_ss
 
         z = vertcat(Ff)
@@ -79,7 +80,8 @@ class Asymmetric_Hysteresis_MPC_Controller:
         f_impl = vertcat(
                 xdot - x_dot,
                 xdotdot - (-self.a[0]*x - self.a[1]*xdot + F), 
-                zetadot - (x_dot - ((self.sigma*zeta*self.mod_approx(x_dot))/(Ff + 1e-8))),
+                zetadot - self.sigma*(x_dot - ((zeta*self.mod_approx(x_dot))/(Ff + 1e-6))),
+                # Ff - 5
                 Ff - self.step_approx(x_dot)*(self.rho[0] + A1 + self.step_approx(xdotdot_expl_expr)*A2) - self.step_approx(-x_dot)*(self.rho[1] + self.sgn_approx(-xdotdot_expl_expr)*A3)
         )
 
@@ -219,12 +221,13 @@ def sim_example():
 
     # rho 2, mu 3, sigma 1, kappa 5, a 2
 
-    a = np.array([1, 2])
+    a = np.array([4, 6])
     rho = np.array([5, 10])
-    mu = np.array([5, -10, 10])
-    kappa = np.array([0.072, 2.228, 0.556, 1.549, 5.005])
-    sigma = 1
-    alpha = np.array([0.5, 0.5])
+    mu = np.array([5, -0.01, 10])
+    kappa = np.array([0.072, 2.228, 0.1856, 1.549, 0.005])
+    sigma = 20.05
+    # alpha = np.array([1.0, -0.2])
+    alpha = np.array([0.9, 0.5])
     beta = 0.45
 
     obj = Asymmetric_Hysteresis_MPC_Controller(rho, mu, sigma, kappa, a, alpha, beta)
@@ -271,7 +274,7 @@ def sim_example():
         integrator.solve()
         x0 = integrator.get('x')
         z = integrator.get('z')
-        print("states, z: ", x0, z)
+        print("states, z: ", x0, z, z/x0[0])
         # print(integrator.get('time_tot'))
         states[i+1,0:3] = x0
         states[i+1, 3] = z
@@ -279,7 +282,7 @@ def sim_example():
 
 
 
-    plt.plot(states[0:, 0], states[:,0] - sigma*states[:, 2])
+    plt.plot(states[0:, 0], states[:,0] - states[:, 2])
 
     plt.show()
 
@@ -290,7 +293,7 @@ def sim_example():
 
     plt.show()
 
-    plt.plot(t_array, states[0:num_sim_time:,0] - sigma*states[0:num_sim_time:, 2])
+    plt.plot(t_array, states[0:num_sim_time:,0] - states[0:num_sim_time:, 2])
     plt.plot(t_array, states[0:num_sim_time, 0])
 
     plt.show()
