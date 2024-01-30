@@ -54,7 +54,7 @@ static void mdlInitializeSizes (SimStruct *S)
     // specify the number of continuous and discrete states
     ssSetNumContStates(S, 0);
     ssSetNumDiscStates(S, 0);// specify the number of input ports
-    if ( !ssSetNumInputPorts(S, 8) )
+    if ( !ssSetNumInputPorts(S, 7) )
         return;
 
     // specify the number of output ports
@@ -66,18 +66,16 @@ static void mdlInitializeSizes (SimStruct *S)
     ssSetInputPortVectorDimension(S, 0, 2);
     // ubx_0
     ssSetInputPortVectorDimension(S, 1, 2);
-    // parameters
-    ssSetInputPortVectorDimension(S, 2, (40+1) * 2);
     // y_ref_0
-    ssSetInputPortVectorDimension(S, 3, 2);
+    ssSetInputPortVectorDimension(S, 2, 3);
     // y_ref
-    ssSetInputPortVectorDimension(S, 4, 78);
+    ssSetInputPortVectorDimension(S, 3, 117);
     // y_ref_e
-    ssSetInputPortVectorDimension(S, 5, 1);
+    ssSetInputPortVectorDimension(S, 4, 2);
     // lbu
-    ssSetInputPortVectorDimension(S, 6, 40);
+    ssSetInputPortVectorDimension(S, 5, 40);
     // ubu
-    ssSetInputPortVectorDimension(S, 7, 40);/* specify dimension information for the OUTPUT ports */
+    ssSetInputPortVectorDimension(S, 6, 40);/* specify dimension information for the OUTPUT ports */
     ssSetOutputPortVectorDimension(S, 0, 1 );
     ssSetOutputPortVectorDimension(S, 1, 1 );
     ssSetOutputPortVectorDimension(S, 2, 1 );
@@ -94,7 +92,6 @@ static void mdlInitializeSizes (SimStruct *S)
     ssSetInputPortDirectFeedThrough(S, 4, 1);
     ssSetInputPortDirectFeedThrough(S, 5, 1);
     ssSetInputPortDirectFeedThrough(S, 6, 1);
-    ssSetInputPortDirectFeedThrough(S, 7, 1);
 
     // one sample time
     ssSetNumSampleTimes(S, 1);
@@ -148,7 +145,7 @@ static void mdlOutputs(SimStruct *S, int_T tid)
     InputRealPtrsType in_sign;      
 
     // local buffer
-    real_t buffer[2];
+    real_t buffer[3];
 
     /* go through inputs */
     // lbx_0
@@ -162,47 +159,37 @@ static void mdlOutputs(SimStruct *S, int_T tid)
     for (int i = 0; i < 2; i++)
         buffer[i] = (double)(*in_sign[i]);
     ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, 0, "ubx", buffer);
-    // parameters - stage-variant !!!
-    in_sign = ssGetInputPortRealSignalPtrs(S, 2);
-
-    // update value of parameters
-    for (int ii = 0; ii <= 40; ii++)
-    {
-        for (int jj = 0; jj < 2; jj++)
-            buffer[jj] = (double)(*in_sign[ii*2+jj]);
-        hysteresis_model_acados_update_params(capsule, ii, buffer, 2);
-    }
 
   
     // y_ref_0
-    in_sign = ssGetInputPortRealSignalPtrs(S, 3);
+    in_sign = ssGetInputPortRealSignalPtrs(S, 2);
 
-    for (int i = 0; i < 2; i++)
+    for (int i = 0; i < 3; i++)
         buffer[i] = (double)(*in_sign[i]);
 
     ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, 0, "yref", (void *) buffer);
 
   
     // y_ref - for stages 1 to N-1
-    in_sign = ssGetInputPortRealSignalPtrs(S, 4);
+    in_sign = ssGetInputPortRealSignalPtrs(S, 3);
 
     for (int ii = 1; ii < 40; ii++)
     {
-        for (int jj = 0; jj < 2; jj++)
-            buffer[jj] = (double)(*in_sign[(ii-1)*2+jj]);
+        for (int jj = 0; jj < 3; jj++)
+            buffer[jj] = (double)(*in_sign[(ii-1)*3+jj]);
         ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, ii, "yref", (void *) buffer);
     }
 
   
     // y_ref_e
-    in_sign = ssGetInputPortRealSignalPtrs(S, 5);
+    in_sign = ssGetInputPortRealSignalPtrs(S, 4);
 
-    for (int i = 0; i < 1; i++)
+    for (int i = 0; i < 2; i++)
         buffer[i] = (double)(*in_sign[i]);
 
     ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, 40, "yref", (void *) buffer);
     // lbu
-    in_sign = ssGetInputPortRealSignalPtrs(S, 6);
+    in_sign = ssGetInputPortRealSignalPtrs(S, 5);
     for (int ii = 0; ii < 40; ii++)
     {
         for (int jj = 0; jj < 1; jj++)
@@ -210,7 +197,7 @@ static void mdlOutputs(SimStruct *S, int_T tid)
         ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, ii, "lbu", (void *) buffer);
     }
     // ubu
-    in_sign = ssGetInputPortRealSignalPtrs(S, 7);
+    in_sign = ssGetInputPortRealSignalPtrs(S, 6);
     for (int ii = 0; ii < 40; ii++)
     {
         for (int jj = 0; jj < 1; jj++)

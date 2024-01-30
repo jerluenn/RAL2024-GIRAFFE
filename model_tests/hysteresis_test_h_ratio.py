@@ -1,5 +1,6 @@
 from casadi import *
 import numpy as np
+import scipy
 
 import time
 import os
@@ -17,14 +18,15 @@ from scipy.integrate import BDF
 
 class Hysteresis_MPC_Controller: 
 
-    def __init__(self, alpha_ten, alpha_h, rho, sigma, gamma_tension, n): 
+    def __init__(self, rho, sigma, gamma_tension, n, gamma, mu, alpha): 
 
-        self.alpha_ten = alpha_ten
-        self.alpha_h = alpha_h
         self.rho = rho
         self.sigma = sigma
         self.gamma_tension = gamma_tension
         self.n = n
+        self.gamma = gamma 
+        self.mu = mu
+        self.alpha = alpha
 
     def createModel(self): 
 
@@ -35,27 +37,46 @@ class Hysteresis_MPC_Controller:
 
         x = vertcat(tension, h)
         
+        tensiondot = SX.sym('tensiondot')
+        hdot = SX.sym('hdot')
+
+        xdot = vertcat(tensiondot, hdot)
+
         tension_des = SX.sym('tension_des')
         u = vertcat(tension_des)
 
         tension_dot = (1/self.gamma_tension)*(tension_des - tension)
 
+        Ff = SX.sym('Ff')
+
+        z = vertcat(Ff)
+
         phi = 0
 
+        Ff_ss = (1 - exp(-self.mu*self.gamma))*tension
+
+        h_dot = self.rho*(tension_dot - self.sigma*self.mod_approx(tension_dot)*h*self.mod_approx(h)**(self.n-1) - (self.sigma - 1)*tension_dot*self.mod_approx(h)**self.n)
+
+        f1 = 0
+        f2 = 0
+
+        Ff_expr = self.mod_approx(tension_dot)*((1-self.alpha[0])*Ff_ss + self.alpha[0]*Ff_ss*exp(-f1)) + self.mod_approx(-tension_dot)*((1-self.alpha[1])*Ff_ss + self.alpha[1]*Ff_ss*exp(-f2))
+
+        f_impl = vertcat(tensiondot - tension_dot, hdot - h_dot, Ff - Ff_expr)
         f_expl = vertcat(tension_dot, self.rho*(tension_dot - self.sigma*self.mod_approx(tension_dot)*h*self.mod_approx(h)**(self.n-1) - (self.sigma - 1)*tension_dot*self.mod_approx(h)**self.n))
 
         model = AcadosModel()
 
-        alpha_h = SX.sym('alpha_h')
-        alpha_tension = SX.sym('alpha_tension')
+        # params = vertcat(alpha_tension, alpha_h)
 
-        params = vertcat(alpha_tension, alpha_h)
-
+        model.z = z
         model.f_expl_expr = f_expl
+        model.f_impl_expr = f_impl
+        model.xdot = xdot
         model.x = x
         model.u = u
         model.name = model_name        
-        model.p = params
+        # model.p = params
 
         return model
 
@@ -66,37 +87,57 @@ class Hysteresis_MPC_Controller:
         model = self.createModel()
 
         # nx = model.x.size()[0]
-        # nu = model.u.size()[0]
-        # ny = nx + nu
-        # ny_e = nx
+        nx = model.x.size()[0]
+        nu = model.u.size()[0]
+        nz = model.z.size()[0]
+        ny = nu + nx
+        ny_e = nx
 
         ocp.model = model
 
-        ocp.cost.cost_type = 'NONLINEAR_LS'
-        ocp.cost.cost_type_e = 'NONLINEAR_LS'
+        Q = np.diag([1, 1])
+        R = np.diag([1])
 
-        ocp.model.cost_y_expr = vertcat(model.p[0]*model.x[0] + model.p[1]*model.x[1], model.u)
-        ocp.model.cost_y_expr_e = vertcat(model.p[0]*model.x[0] + model.p[1]*model.x[1])
-        # ocp.model.cost_y_expr_0 = vertcat(model.p[0]*model.x[0] + model.p[1]*model.x[1], model.u)
-        # ocp.cost.yref_0 = np.zeros((ny, ))
-        ocp.cost.yref  = np.zeros((2, ))
-        ocp.cost.yref_e = np.zeros((1, ))
+        ocp.cost.W = scipy.linalg.block_diag(Q, R)
+
+        Vx = np.zeros((ny, nx))
+        Vx[:nx, :nx] = np.eye(nx)
+        ocp.cost.Vx = Vx
+
+        Vu = np.zeros((ny, nu))
+        ocp.cost.Vu = Vu
+
+        Vz = np.zeros((ny, nz))
+        Vz[0, 0] = 1.0
+
+        ocp.cost.Vz = np.zeros((ny, nz))
+
+        Q_e = np.diag([1, 1])
+        ocp.cost.W_e = Q_e
+
+        Vx_e = np.zeros((ny_e, nx))
+        Vx_e[:nx, :nx] = np.eye(nx)
+
+        ocp.cost.Vx_e = Vx_e
+
+        ocp.cost.yref = np.zeros(ny)
+        ocp.cost.yref_e = np.zeros(nx)
 
         ocp.constraints.lbu = np.array([-max_tension])
         ocp.constraints.ubu = np.array([max_tension])
 
-        ocp.cost.W = np.diag([10, 0.01])
-        ocp.cost.W_e = np.diag([100])
+        # ocp.cost.W = np.diag([10, 0.01])
+        # ocp.cost.W_e = np.diag([100])
 
         ocp.constraints.x0 = x0
         ocp.constraints.idxbu = np.array([0])
 
         ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM' # FULL_CONDENSING_QPOASES
         ocp.solver_options.hessian_approx = 'GAUSS_NEWTON'
-        ocp.solver_options.integrator_type = 'ERK'
+        ocp.solver_options.integrator_type = 'IRK'
         ocp.solver_options.sim_method_newton_iter = 10
         ocp.solver_options.sim_method_num_stages = 4
-        ocp.solver_options.sim_method_num_steps = 20
+        ocp.solver_options.sim_method_num_steps = 1
         ocp.solver_options.levenberg_marquardt = 1.0
 
         if RTI:
@@ -106,7 +147,7 @@ class Hysteresis_MPC_Controller:
 
         ocp.dims.N = N_horizon
         # ocp.solver_options.qp_solver_cond_N = N_horizon
-        ocp.parameter_values = np.array([self.alpha_ten, self.alpha_h])
+        # ocp.parameter_values = np.array([self.alpha_ten, self.alpha_h])
 
         # set prediction horizon
         ocp.solver_options.tf = Tf
@@ -130,13 +171,15 @@ class Hysteresis_MPC_Controller:
 
 def sim_example(): 
 
-    # alpha_ten, alpha_h, rho, sigma, gamma_tension, n
+    # rho, sigma, gamma_tension, n, gamma, mu, alpha
 
-    obj = Hysteresis_MPC_Controller(0.5, 0.2, 3.0, 0.7, 5.0, 5)
+    alpha = np.array([0.5, 0.5])
+
+    obj = Hysteresis_MPC_Controller(7.0, 20.0, 3.0, 4, 0.45, 2, alpha)
     solver, integrator = obj.createSolver(np.zeros(2), 30, 40, 1, 2)
 
     x0 = np.zeros(2)
-    num_sim_time = 2000
+    num_sim_time = 1000
 
     states = np.zeros((num_sim_time+1, 3))
     simU = np.zeros((num_sim_time, 1))
@@ -172,18 +215,19 @@ def sim_example():
         integrator.set('u', simU[i, :])
         integrator.solve()
         x0 = integrator.get('x')
+        z = integrator.get('z')
         states[i+1,0:2] = x0
-        states[i+1,2] = obj.alpha_ten*x0[0] + obj.alpha_h*x0[1]
+        states[i+1,2] = z
 
 
 
-    plt.plot(states[:, 0], states[:, 0] - states[:, 2])
+    plt.plot(states[:, 0], states[:, 2])
 
     plt.show()
 
     plt.plot(t_array, states[0:num_sim_time, 1])
     plt.plot(t_array, states[0:num_sim_time, 0])
-    plt.plot(t_array, states[0:num_sim_time, 0] - states[0:num_sim_time, 2])
+    plt.plot(t_array, states[0:num_sim_time, 2])
 
     plt.show()
 

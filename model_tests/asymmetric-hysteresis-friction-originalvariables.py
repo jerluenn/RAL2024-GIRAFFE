@@ -51,18 +51,21 @@ class Asymmetric_Hysteresis_MPC_Controller:
 
         gamma = SX.sym('gamma')
 
-        tau_ss = x*(1 - exp(-self.beta*gamma))
+        # tau_ss = x*(1 - exp(-self.beta*gamma))
 
-        self.rho = SX.zeros(2)
+        # self.rho = SX.zeros(2)
 
-        self.rho[0] = (1-self.alpha[0])*tau_ss 
-        self.rho[1] = (1-self.alpha[1])*tau_ss
+        # self.rho[0] = (1-self.alpha[0])*tau_ss 
+        # self.rho[1] = (1-self.alpha[1])*tau_ss
 
-        self.mu = SX.zeros(3)
+        # self.mu = SX.zeros(3)
 
-        self.mu[0] = self.alpha[0]*tau_ss
-        self.mu[1] = self.mu_numpy[1]
-        self.mu[2] = -self.alpha[1]*tau_ss
+        # self.mu[0] = self.alpha[0]*tau_ss
+        # self.mu[1] = self.mu_numpy[1]
+        # self.mu[2] = -self.alpha[1]*tau_ss
+
+        self.rho = self.rho_numpy
+        self.mu = self.mu_numpy
 
         z = vertcat(Ff)
 
@@ -222,10 +225,10 @@ def sim_example():
     # rho 2, mu 3, sigma 1, kappa 5, a 2
 
     a = np.array([4, 6])
-    rho = np.array([5, 10])
-    mu = np.array([5, 0, 10])
-    kappa = np.array([0.072, 2.228, 0.1856, 1.549, 0.005])
-    sigma = 20.05
+    rho = np.array([2.097, 3.960])
+    mu = np.array([1.368, 1.579, 3.960])
+    kappa = np.array([0.172, 1.579, -1.855, 5.549, 0.005])
+    sigma = 17.57
     # alpha = np.array([1.0, -0.2])
     alpha = np.array([0.9, 0.5])
     beta = 0.45
@@ -233,7 +236,7 @@ def sim_example():
     obj = Asymmetric_Hysteresis_MPC_Controller(rho, mu, sigma, kappa, a, alpha, beta)
     solver, integrator = obj.createSolver(np.zeros(3), 100, 50, 1, 1)
 
-    x0 = np.array([-1, 0, 0])
+    x0 = np.zeros(3)
     num_sim_time = 1000
     p = np.array([2])
 
@@ -244,6 +247,7 @@ def sim_example():
     t = 0 
     freq = 0.05
 
+    x0 = np.array([0.1, 0, 0])
 
     for i in range(num_sim_time): 
 
@@ -257,12 +261,12 @@ def sim_example():
         if i > num_sim_time/2 : 
 
         # u = 5*np.sin(i*freq) + 5
-            u = 0.01
-            u = 0
+            u = -0.1
+            # u = 0
 
         else: 
 
-            u = 10
+            u = 0.1
 
         simU[i, :] = u
 
@@ -282,7 +286,7 @@ def sim_example():
 
 
 
-    plt.plot(states[0:, 0], states[:,0] - states[:, 2])
+    plt.plot(states[0:, 0], obj.sigma*states[:, 2])
 
     plt.show()
 

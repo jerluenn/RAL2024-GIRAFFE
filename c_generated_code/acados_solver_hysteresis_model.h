@@ -38,9 +38,9 @@
 #include "acados_c/external_function_interface.h"
 
 #define HYSTERESIS_MODEL_NX     2
-#define HYSTERESIS_MODEL_NZ     0
+#define HYSTERESIS_MODEL_NZ     1
 #define HYSTERESIS_MODEL_NU     1
-#define HYSTERESIS_MODEL_NP     2
+#define HYSTERESIS_MODEL_NP     0
 #define HYSTERESIS_MODEL_NBX    0
 #define HYSTERESIS_MODEL_NBX0   2
 #define HYSTERESIS_MODEL_NBU    1
@@ -58,9 +58,9 @@
 #define HYSTERESIS_MODEL_NG     0
 #define HYSTERESIS_MODEL_NBXN   0
 #define HYSTERESIS_MODEL_NGN    0
-#define HYSTERESIS_MODEL_NY0    2
-#define HYSTERESIS_MODEL_NY     2
-#define HYSTERESIS_MODEL_NYN    1
+#define HYSTERESIS_MODEL_NY0    3
+#define HYSTERESIS_MODEL_NY     3
+#define HYSTERESIS_MODEL_NYN    2
 #define HYSTERESIS_MODEL_N      40
 #define HYSTERESIS_MODEL_NH     0
 #define HYSTERESIS_MODEL_NPHI   0
@@ -91,28 +91,18 @@ typedef struct hysteresis_model_solver_capsule
     /* external functions */
     // dynamics
 
-    external_function_param_casadi *forw_vde_casadi;
-    external_function_param_casadi *expl_ode_fun;
+    external_function_param_casadi *impl_dae_fun;
+    external_function_param_casadi *impl_dae_fun_jac_x_xdot_z;
+    external_function_param_casadi *impl_dae_jac_x_xdot_u_z;
 
 
 
 
     // cost
 
-    external_function_param_casadi *cost_y_fun;
-    external_function_param_casadi *cost_y_fun_jac_ut_xt;
-    external_function_param_casadi *cost_y_hess;
-
-
-    external_function_param_casadi cost_y_0_fun;
-    external_function_param_casadi cost_y_0_fun_jac_ut_xt;
-    external_function_param_casadi cost_y_0_hess;
 
 
 
-    external_function_param_casadi cost_y_e_fun;
-    external_function_param_casadi cost_y_e_fun_jac_ut_xt;
-    external_function_param_casadi cost_y_e_hess;
 
 
     // constraints

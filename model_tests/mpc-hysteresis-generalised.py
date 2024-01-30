@@ -123,14 +123,14 @@ class Hysteresis_MPC_Controller:
 
     def mod_approx(self, x):
 
-        epsilon = 1e-2
+        epsilon = 1e-6
 
         return sqrt(x**2 + epsilon)
 
     def sgn_approx(self, x1, x2): 
 
 
-        epsilon = 1e-1
+        epsilon = 1e-6
 
         return tanh((x1*x2)/epsilon)
 
@@ -141,13 +141,13 @@ def sim_example():
 
     # alpha_ten, alpha_h, rho, sigma, gamma_tension, n
 
-    beta = np.array([1.0, 0.0, 0.0, 0.00, -0.2, -0.2, 0.0])     
+    beta = np.array([0.670, 0.118, 0.094, 0.115, 0.21, 0.112, 0.0])     
 
-    obj = Hysteresis_MPC_Controller(0.5, 0.3, 5.0, 0.7, 1.0, 3, beta)
-    solver, integrator = obj.createSolver(np.zeros(2), 30, 40, 1, 2)
+    obj = Hysteresis_MPC_Controller(0.5, 0.4, -1.5, 0.7, 1.0, 3, beta)
+    solver, integrator = obj.createSolver(np.zeros(2), 30, 40, 1, 4)
 
     x0 = np.zeros(2)
-    num_sim_time = 500
+    num_sim_time = 900
 
     states = np.zeros((num_sim_time+1, 3))
     simU = np.zeros((num_sim_time, 1))
@@ -155,6 +155,10 @@ def sim_example():
     t = 0 
     freq = 0.05
 
+    u = np.ndarray(num_sim_time)
+    u[0:int(num_sim_time/3)] = 8
+    u[int(num_sim_time/3):int(2*num_sim_time/3)] = -0.2
+    u[int(2*num_sim_time/3):int(num_sim_time)] = 4
 
     for i in range(num_sim_time): 
 
@@ -165,17 +169,7 @@ def sim_example():
         solver.set(0, 'ubx', x0)
         solver.solve() # Testing the solver.
 
-
-        if i > 250 : 
-
-        # u = 5*np.sin(i*freq) + 5
-            u = 0
-
-        else: 
-
-            u = 5 
-
-        simU[i, :] = u
+        simU[i, :] = u[i]
 
         print(simU[i, :])
 
@@ -188,7 +182,8 @@ def sim_example():
 
 
 
-    plt.plot(states[:, 2], states[:, 0])
+    plt.plot(states[:, 0], states[:, 2])
+    # plt.plot(states[:, 0], states[:, 0] - states[:, 2])
 
     plt.show()
 
