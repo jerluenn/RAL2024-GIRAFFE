@@ -39,27 +39,27 @@
 
 # model
 MODEL_SRC=
-MODEL_SRC+= hysteresis_model_model/hysteresis_model_impl_dae_fun.c
-MODEL_SRC+= hysteresis_model_model/hysteresis_model_impl_dae_fun_jac_x_xdot_z.c
-MODEL_SRC+= hysteresis_model_model/hysteresis_model_impl_dae_jac_x_xdot_u_z.c
+MODEL_SRC+= mass_spring_damper_friction_model/mass_spring_damper_friction_impl_dae_fun.c
+MODEL_SRC+= mass_spring_damper_friction_model/mass_spring_damper_friction_impl_dae_fun_jac_x_xdot_z.c
+MODEL_SRC+= mass_spring_damper_friction_model/mass_spring_damper_friction_impl_dae_jac_x_xdot_u_z.c
 MODEL_OBJ := $(MODEL_SRC:.c=.o)
 
 # optimal control problem - mostly CasAdi exports
 OCP_SRC=
-OCP_SRC+= acados_solver_hysteresis_model.c
+OCP_SRC+= acados_solver_mass_spring_damper_friction.c
 OCP_OBJ := $(OCP_SRC:.c=.o)
 
 # for sim solver
-SIM_SRC= acados_sim_solver_hysteresis_model.c
+SIM_SRC= acados_sim_solver_mass_spring_damper_friction.c
 SIM_OBJ := $(SIM_SRC:.c=.o)
 
 # for target example
-EX_SRC= main_hysteresis_model.c
+EX_SRC= main_mass_spring_damper_friction.c
 EX_OBJ := $(EX_SRC:.c=.o)
 EX_EXE := $(EX_SRC:.c=)
 
 # for target example_sim
-EX_SIM_SRC= main_sim_hysteresis_model.c
+EX_SIM_SRC= main_sim_mass_spring_damper_friction.c
 EX_SIM_OBJ := $(EX_SIM_SRC:.c=.o)
 EX_SIM_EXE := $(EX_SIM_SRC:.c=)
 
@@ -98,8 +98,8 @@ LDLIBS+= -lm
 LDLIBS+= 
 
 # libraries
-LIBACADOS_SOLVER=libacados_solver_hysteresis_model.so
-LIBACADOS_OCP_SOLVER=libacados_ocp_solver_hysteresis_model.so
+LIBACADOS_SOLVER=libacados_solver_mass_spring_damper_friction.so
+LIBACADOS_OCP_SOLVER=libacados_ocp_solver_mass_spring_damper_friction.so
 LIBACADOS_SIM_SOLVER=lib$(SIM_SRC:.c=.so)
 
 # virtual targets

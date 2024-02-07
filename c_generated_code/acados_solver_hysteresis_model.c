@@ -45,6 +45,9 @@
 
 
 
+#include "hysteresis_model_cost/hysteresis_model_cost_y_fun.h"
+#include "hysteresis_model_cost/hysteresis_model_cost_y_0_fun.h"
+#include "hysteresis_model_cost/hysteresis_model_cost_y_e_fun.h"
 
 #include "acados_solver_hysteresis_model.h"
 
@@ -152,17 +155,17 @@ int hysteresis_model_acados_create_with_discretization(hysteresis_model_solver_c
 
     nlp_solver_plan->ocp_qp_solver_plan.qp_solver = PARTIAL_CONDENSING_HPIPM;
 
-    nlp_solver_plan->nlp_cost[0] = LINEAR_LS;
+    nlp_solver_plan->nlp_cost[0] = NONLINEAR_LS;
     for (int i = 1; i < N; i++)
-        nlp_solver_plan->nlp_cost[i] = LINEAR_LS;
+        nlp_solver_plan->nlp_cost[i] = NONLINEAR_LS;
 
-    nlp_solver_plan->nlp_cost[N] = LINEAR_LS;
+    nlp_solver_plan->nlp_cost[N] = NONLINEAR_LS;
 
     for (int i = 0; i < N; i++)
     {
         
         nlp_solver_plan->nlp_dynamics[i] = CONTINUOUS_MODEL;
-        nlp_solver_plan->sim_solver_plan[i].sim_solver = IRK;
+        nlp_solver_plan->sim_solver_plan[i].sim_solver = ERK;
     }
 
     for (int i = 0; i < N; i++)
@@ -288,40 +291,117 @@ int hysteresis_model_acados_create_with_discretization(hysteresis_model_solver_c
     ************************************************/
 
 
-    // implicit dae
-    capsule->impl_dae_fun = (external_function_param_casadi *) malloc(sizeof(external_function_param_casadi)*N);
+    // explicit ode
+    capsule->forw_vde_casadi = (external_function_param_casadi *) malloc(sizeof(external_function_param_casadi)*N);
     for (int i = 0; i < N; i++) {
-        capsule->impl_dae_fun[i].casadi_fun = &hysteresis_model_impl_dae_fun;
-        capsule->impl_dae_fun[i].casadi_work = &hysteresis_model_impl_dae_fun_work;
-        capsule->impl_dae_fun[i].casadi_sparsity_in = &hysteresis_model_impl_dae_fun_sparsity_in;
-        capsule->impl_dae_fun[i].casadi_sparsity_out = &hysteresis_model_impl_dae_fun_sparsity_out;
-        capsule->impl_dae_fun[i].casadi_n_in = &hysteresis_model_impl_dae_fun_n_in;
-        capsule->impl_dae_fun[i].casadi_n_out = &hysteresis_model_impl_dae_fun_n_out;
-        external_function_param_casadi_create(&capsule->impl_dae_fun[i], 0);
+        capsule->forw_vde_casadi[i].casadi_fun = &hysteresis_model_expl_vde_forw;
+        capsule->forw_vde_casadi[i].casadi_n_in = &hysteresis_model_expl_vde_forw_n_in;
+        capsule->forw_vde_casadi[i].casadi_n_out = &hysteresis_model_expl_vde_forw_n_out;
+        capsule->forw_vde_casadi[i].casadi_sparsity_in = &hysteresis_model_expl_vde_forw_sparsity_in;
+        capsule->forw_vde_casadi[i].casadi_sparsity_out = &hysteresis_model_expl_vde_forw_sparsity_out;
+        capsule->forw_vde_casadi[i].casadi_work = &hysteresis_model_expl_vde_forw_work;
+        external_function_param_casadi_create(&capsule->forw_vde_casadi[i], 2);
     }
 
-    capsule->impl_dae_fun_jac_x_xdot_z = (external_function_param_casadi *) malloc(sizeof(external_function_param_casadi)*N);
+    capsule->expl_ode_fun = (external_function_param_casadi *) malloc(sizeof(external_function_param_casadi)*N);
     for (int i = 0; i < N; i++) {
-        capsule->impl_dae_fun_jac_x_xdot_z[i].casadi_fun = &hysteresis_model_impl_dae_fun_jac_x_xdot_z;
-        capsule->impl_dae_fun_jac_x_xdot_z[i].casadi_work = &hysteresis_model_impl_dae_fun_jac_x_xdot_z_work;
-        capsule->impl_dae_fun_jac_x_xdot_z[i].casadi_sparsity_in = &hysteresis_model_impl_dae_fun_jac_x_xdot_z_sparsity_in;
-        capsule->impl_dae_fun_jac_x_xdot_z[i].casadi_sparsity_out = &hysteresis_model_impl_dae_fun_jac_x_xdot_z_sparsity_out;
-        capsule->impl_dae_fun_jac_x_xdot_z[i].casadi_n_in = &hysteresis_model_impl_dae_fun_jac_x_xdot_z_n_in;
-        capsule->impl_dae_fun_jac_x_xdot_z[i].casadi_n_out = &hysteresis_model_impl_dae_fun_jac_x_xdot_z_n_out;
-        external_function_param_casadi_create(&capsule->impl_dae_fun_jac_x_xdot_z[i], 0);
+        capsule->expl_ode_fun[i].casadi_fun = &hysteresis_model_expl_ode_fun;
+        capsule->expl_ode_fun[i].casadi_n_in = &hysteresis_model_expl_ode_fun_n_in;
+        capsule->expl_ode_fun[i].casadi_n_out = &hysteresis_model_expl_ode_fun_n_out;
+        capsule->expl_ode_fun[i].casadi_sparsity_in = &hysteresis_model_expl_ode_fun_sparsity_in;
+        capsule->expl_ode_fun[i].casadi_sparsity_out = &hysteresis_model_expl_ode_fun_sparsity_out;
+        capsule->expl_ode_fun[i].casadi_work = &hysteresis_model_expl_ode_fun_work;
+        external_function_param_casadi_create(&capsule->expl_ode_fun[i], 2);
     }
 
-    capsule->impl_dae_jac_x_xdot_u_z = (external_function_param_casadi *) malloc(sizeof(external_function_param_casadi)*N);
-    for (int i = 0; i < N; i++) {
-        capsule->impl_dae_jac_x_xdot_u_z[i].casadi_fun = &hysteresis_model_impl_dae_jac_x_xdot_u_z;
-        capsule->impl_dae_jac_x_xdot_u_z[i].casadi_work = &hysteresis_model_impl_dae_jac_x_xdot_u_z_work;
-        capsule->impl_dae_jac_x_xdot_u_z[i].casadi_sparsity_in = &hysteresis_model_impl_dae_jac_x_xdot_u_z_sparsity_in;
-        capsule->impl_dae_jac_x_xdot_u_z[i].casadi_sparsity_out = &hysteresis_model_impl_dae_jac_x_xdot_u_z_sparsity_out;
-        capsule->impl_dae_jac_x_xdot_u_z[i].casadi_n_in = &hysteresis_model_impl_dae_jac_x_xdot_u_z_n_in;
-        capsule->impl_dae_jac_x_xdot_u_z[i].casadi_n_out = &hysteresis_model_impl_dae_jac_x_xdot_u_z_n_out;
-        external_function_param_casadi_create(&capsule->impl_dae_jac_x_xdot_u_z[i], 0);
+
+    // nonlinear least square function
+    capsule->cost_y_0_fun.casadi_fun = &hysteresis_model_cost_y_0_fun;
+    capsule->cost_y_0_fun.casadi_n_in = &hysteresis_model_cost_y_0_fun_n_in;
+    capsule->cost_y_0_fun.casadi_n_out = &hysteresis_model_cost_y_0_fun_n_out;
+    capsule->cost_y_0_fun.casadi_sparsity_in = &hysteresis_model_cost_y_0_fun_sparsity_in;
+    capsule->cost_y_0_fun.casadi_sparsity_out = &hysteresis_model_cost_y_0_fun_sparsity_out;
+    capsule->cost_y_0_fun.casadi_work = &hysteresis_model_cost_y_0_fun_work;
+    external_function_param_casadi_create(&capsule->cost_y_0_fun, 2);
+
+    capsule->cost_y_0_fun_jac_ut_xt.casadi_fun = &hysteresis_model_cost_y_0_fun_jac_ut_xt;
+    capsule->cost_y_0_fun_jac_ut_xt.casadi_n_in = &hysteresis_model_cost_y_0_fun_jac_ut_xt_n_in;
+    capsule->cost_y_0_fun_jac_ut_xt.casadi_n_out = &hysteresis_model_cost_y_0_fun_jac_ut_xt_n_out;
+    capsule->cost_y_0_fun_jac_ut_xt.casadi_sparsity_in = &hysteresis_model_cost_y_0_fun_jac_ut_xt_sparsity_in;
+    capsule->cost_y_0_fun_jac_ut_xt.casadi_sparsity_out = &hysteresis_model_cost_y_0_fun_jac_ut_xt_sparsity_out;
+    capsule->cost_y_0_fun_jac_ut_xt.casadi_work = &hysteresis_model_cost_y_0_fun_jac_ut_xt_work;
+    external_function_param_casadi_create(&capsule->cost_y_0_fun_jac_ut_xt, 2);
+
+    capsule->cost_y_0_hess.casadi_fun = &hysteresis_model_cost_y_0_hess;
+    capsule->cost_y_0_hess.casadi_n_in = &hysteresis_model_cost_y_0_hess_n_in;
+    capsule->cost_y_0_hess.casadi_n_out = &hysteresis_model_cost_y_0_hess_n_out;
+    capsule->cost_y_0_hess.casadi_sparsity_in = &hysteresis_model_cost_y_0_hess_sparsity_in;
+    capsule->cost_y_0_hess.casadi_sparsity_out = &hysteresis_model_cost_y_0_hess_sparsity_out;
+    capsule->cost_y_0_hess.casadi_work = &hysteresis_model_cost_y_0_hess_work;
+    external_function_param_casadi_create(&capsule->cost_y_0_hess, 2);
+    // nonlinear least squares cost
+    capsule->cost_y_fun = (external_function_param_casadi *) malloc(sizeof(external_function_param_casadi)*N);
+    for (int i = 0; i < N-1; i++)
+    {
+        capsule->cost_y_fun[i].casadi_fun = &hysteresis_model_cost_y_fun;
+        capsule->cost_y_fun[i].casadi_n_in = &hysteresis_model_cost_y_fun_n_in;
+        capsule->cost_y_fun[i].casadi_n_out = &hysteresis_model_cost_y_fun_n_out;
+        capsule->cost_y_fun[i].casadi_sparsity_in = &hysteresis_model_cost_y_fun_sparsity_in;
+        capsule->cost_y_fun[i].casadi_sparsity_out = &hysteresis_model_cost_y_fun_sparsity_out;
+        capsule->cost_y_fun[i].casadi_work = &hysteresis_model_cost_y_fun_work;
+
+        external_function_param_casadi_create(&capsule->cost_y_fun[i], 2);
     }
 
+    capsule->cost_y_fun_jac_ut_xt = (external_function_param_casadi *) malloc(sizeof(external_function_param_casadi)*N);
+    for (int i = 0; i < N-1; i++)
+    {
+        capsule->cost_y_fun_jac_ut_xt[i].casadi_fun = &hysteresis_model_cost_y_fun_jac_ut_xt;
+        capsule->cost_y_fun_jac_ut_xt[i].casadi_n_in = &hysteresis_model_cost_y_fun_jac_ut_xt_n_in;
+        capsule->cost_y_fun_jac_ut_xt[i].casadi_n_out = &hysteresis_model_cost_y_fun_jac_ut_xt_n_out;
+        capsule->cost_y_fun_jac_ut_xt[i].casadi_sparsity_in = &hysteresis_model_cost_y_fun_jac_ut_xt_sparsity_in;
+        capsule->cost_y_fun_jac_ut_xt[i].casadi_sparsity_out = &hysteresis_model_cost_y_fun_jac_ut_xt_sparsity_out;
+        capsule->cost_y_fun_jac_ut_xt[i].casadi_work = &hysteresis_model_cost_y_fun_jac_ut_xt_work;
+
+        external_function_param_casadi_create(&capsule->cost_y_fun_jac_ut_xt[i], 2);
+    }
+
+    capsule->cost_y_hess = (external_function_param_casadi *) malloc(sizeof(external_function_param_casadi)*N);
+    for (int i = 0; i < N-1; i++)
+    {
+        capsule->cost_y_hess[i].casadi_fun = &hysteresis_model_cost_y_hess;
+        capsule->cost_y_hess[i].casadi_n_in = &hysteresis_model_cost_y_hess_n_in;
+        capsule->cost_y_hess[i].casadi_n_out = &hysteresis_model_cost_y_hess_n_out;
+        capsule->cost_y_hess[i].casadi_sparsity_in = &hysteresis_model_cost_y_hess_sparsity_in;
+        capsule->cost_y_hess[i].casadi_sparsity_out = &hysteresis_model_cost_y_hess_sparsity_out;
+        capsule->cost_y_hess[i].casadi_work = &hysteresis_model_cost_y_hess_work;
+
+        external_function_param_casadi_create(&capsule->cost_y_hess[i], 2);
+    }
+    // nonlinear least square function
+    capsule->cost_y_e_fun.casadi_fun = &hysteresis_model_cost_y_e_fun;
+    capsule->cost_y_e_fun.casadi_n_in = &hysteresis_model_cost_y_e_fun_n_in;
+    capsule->cost_y_e_fun.casadi_n_out = &hysteresis_model_cost_y_e_fun_n_out;
+    capsule->cost_y_e_fun.casadi_sparsity_in = &hysteresis_model_cost_y_e_fun_sparsity_in;
+    capsule->cost_y_e_fun.casadi_sparsity_out = &hysteresis_model_cost_y_e_fun_sparsity_out;
+    capsule->cost_y_e_fun.casadi_work = &hysteresis_model_cost_y_e_fun_work;
+    external_function_param_casadi_create(&capsule->cost_y_e_fun, 2);
+
+    capsule->cost_y_e_fun_jac_ut_xt.casadi_fun = &hysteresis_model_cost_y_e_fun_jac_ut_xt;
+    capsule->cost_y_e_fun_jac_ut_xt.casadi_n_in = &hysteresis_model_cost_y_e_fun_jac_ut_xt_n_in;
+    capsule->cost_y_e_fun_jac_ut_xt.casadi_n_out = &hysteresis_model_cost_y_e_fun_jac_ut_xt_n_out;
+    capsule->cost_y_e_fun_jac_ut_xt.casadi_sparsity_in = &hysteresis_model_cost_y_e_fun_jac_ut_xt_sparsity_in;
+    capsule->cost_y_e_fun_jac_ut_xt.casadi_sparsity_out = &hysteresis_model_cost_y_e_fun_jac_ut_xt_sparsity_out;
+    capsule->cost_y_e_fun_jac_ut_xt.casadi_work = &hysteresis_model_cost_y_e_fun_jac_ut_xt_work;
+    external_function_param_casadi_create(&capsule->cost_y_e_fun_jac_ut_xt, 2);
+
+    capsule->cost_y_e_hess.casadi_fun = &hysteresis_model_cost_y_e_hess;
+    capsule->cost_y_e_hess.casadi_n_in = &hysteresis_model_cost_y_e_hess_n_in;
+    capsule->cost_y_e_hess.casadi_n_out = &hysteresis_model_cost_y_e_hess_n_out;
+    capsule->cost_y_e_hess.casadi_sparsity_in = &hysteresis_model_cost_y_e_hess_sparsity_in;
+    capsule->cost_y_e_hess.casadi_sparsity_out = &hysteresis_model_cost_y_e_hess_sparsity_out;
+    capsule->cost_y_e_hess.casadi_work = &hysteresis_model_cost_y_e_hess_work;
+    external_function_param_casadi_create(&capsule->cost_y_e_hess, 2);
 
     /************************************************
     *  nlp_in
@@ -346,11 +426,8 @@ int hysteresis_model_acados_create_with_discretization(hysteresis_model_solver_c
     /**** Dynamics ****/
     for (int i = 0; i < N; i++)
     {
-        ocp_nlp_dynamics_model_set(nlp_config, nlp_dims, nlp_in, i, "impl_dae_fun", &capsule->impl_dae_fun[i]);
-        ocp_nlp_dynamics_model_set(nlp_config, nlp_dims, nlp_in, i,
-                                   "impl_dae_fun_jac_x_xdot_z", &capsule->impl_dae_fun_jac_x_xdot_z[i]);
-        ocp_nlp_dynamics_model_set(nlp_config, nlp_dims, nlp_in, i,
-                                   "impl_dae_jac_x_xdot_u", &capsule->impl_dae_jac_x_xdot_u_z[i]);
+        ocp_nlp_dynamics_model_set(nlp_config, nlp_dims, nlp_in, i, "expl_vde_forw", &capsule->forw_vde_casadi[i]);
+        ocp_nlp_dynamics_model_set(nlp_config, nlp_dims, nlp_in, i, "expl_ode_fun", &capsule->expl_ode_fun[i]);
     
     }
 
@@ -359,9 +436,8 @@ int hysteresis_model_acados_create_with_discretization(hysteresis_model_solver_c
 
     double* W_0 = calloc(NY0*NY0, sizeof(double));
     // change only the non-zero elements:
-    W_0[0+(NY0) * 0] = 1;
-    W_0[1+(NY0) * 1] = 1;
-    W_0[2+(NY0) * 2] = 1;
+    W_0[0+(NY0) * 0] = 10;
+    W_0[1+(NY0) * 1] = 0.01;
     ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, 0, "W", W_0);
     free(W_0);
 
@@ -375,9 +451,8 @@ int hysteresis_model_acados_create_with_discretization(hysteresis_model_solver_c
     double* W = calloc(NY*NY, sizeof(double));
     // change only the non-zero elements:
     
-    W[0+(NY) * 0] = 1;
-    W[1+(NY) * 1] = 1;
-    W[2+(NY) * 2] = 1;
+    W[0+(NY) * 0] = 10;
+    W[1+(NY) * 1] = 0.01;
 
     double* yref = calloc(NY, sizeof(double));
     // change only the non-zero elements:
@@ -391,60 +466,15 @@ int hysteresis_model_acados_create_with_discretization(hysteresis_model_solver_c
     free(yref);
 
 
-    double* Vx_0 = calloc(NY0*NX, sizeof(double));
-    // change only the non-zero elements:
-    
-    Vx_0[0+(NY0) * 0] = 1;
-    Vx_0[1+(NY0) * 1] = 1;
-    ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, 0, "Vx", Vx_0);
-    free(Vx_0);
-
-
-    double* Vu_0 = calloc(NY0*NU, sizeof(double));
-    // change only the non-zero elements:
-    
-    ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, 0, "Vu", Vu_0);
-    free(Vu_0);
-
-
-    double* Vz_0 = calloc(NY0*NZ, sizeof(double));
-    // change only the non-zero elements:
-    
-    ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, 0, "Vz", Vz_0);
-    free(Vz_0);
-    double* Vx = calloc(NY*NX, sizeof(double));
-    // change only the non-zero elements:
-    
-    Vx[0+(NY) * 0] = 1;
-    Vx[1+(NY) * 1] = 1;
+    ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, 0, "nls_y_fun", &capsule->cost_y_0_fun);
+    ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, 0, "nls_y_fun_jac", &capsule->cost_y_0_fun_jac_ut_xt);
+    ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, 0, "nls_y_hess", &capsule->cost_y_0_hess);
     for (int i = 1; i < N; i++)
     {
-        ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, i, "Vx", Vx);
+        ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, i, "nls_y_fun", &capsule->cost_y_fun[i-1]);
+        ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, i, "nls_y_fun_jac", &capsule->cost_y_fun_jac_ut_xt[i-1]);
+        ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, i, "nls_y_hess", &capsule->cost_y_hess[i-1]);
     }
-    free(Vx);
-
-
-    double* Vu = calloc(NY*NU, sizeof(double));
-    // change only the non-zero elements:
-    
-
-    for (int i = 1; i < N; i++)
-    {
-        ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, i, "Vu", Vu);
-    }
-    free(Vu);
-
-
-
-    double* Vz = calloc(NY*NZ, sizeof(double));
-    // change only the non-zero elements:
-    
-
-    for (int i = 1; i < N; i++)
-    {
-        ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, i, "Vz", Vz);
-    }
-    free(Vz);
 
 
 
@@ -461,17 +491,12 @@ int hysteresis_model_acados_create_with_discretization(hysteresis_model_solver_c
     double* W_e = calloc(NYN*NYN, sizeof(double));
     // change only the non-zero elements:
     
-    W_e[0+(NYN) * 0] = 1;
-    W_e[1+(NYN) * 1] = 1;
+    W_e[0+(NYN) * 0] = 100;
     ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, N, "W", W_e);
     free(W_e);
-    double* Vx_e = calloc(NYN*NX, sizeof(double));
-    // change only the non-zero elements:
-    
-    Vx_e[0+(NYN) * 0] = 1;
-    Vx_e[1+(NYN) * 1] = 1;
-    ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, N, "Vx", Vx_e);
-    free(Vx_e);
+    ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, N, "nls_y_fun", &capsule->cost_y_e_fun);
+    ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, N, "nls_y_fun_jac", &capsule->cost_y_e_fun_jac_ut_xt);
+    ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, N, "nls_y_hess", &capsule->cost_y_e_hess);
 
 
 
@@ -572,14 +597,6 @@ int hysteresis_model_acados_create_with_discretization(hysteresis_model_solver_c
 
 
     ocp_nlp_solver_opts_set(nlp_config, capsule->nlp_opts, "globalization", "fixed_step");
-    // TODO: these options are lower level -> should be encapsulated! maybe through hessian approx option.
-    bool output_z_val = true;
-    bool sens_algebraic_val = true;
-
-    for (int i = 0; i < N; i++)
-        ocp_nlp_solver_opts_set_at_stage(nlp_config, capsule->nlp_opts, i, "dynamics_output_z", &output_z_val);
-    for (int i = 0; i < N; i++)
-        ocp_nlp_solver_opts_set_at_stage(nlp_config, capsule->nlp_opts, i, "dynamics_sens_algebraic", &sens_algebraic_val);
 
     // set collocation type (relevant for implicit integrators)
     sim_collocation_type collocation_type = GAUSS_LEGENDRE;
@@ -588,7 +605,7 @@ int hysteresis_model_acados_create_with_discretization(hysteresis_model_solver_c
 
     // set up sim_method_num_steps
     // all sim_method_num_steps are identical
-    int sim_method_num_steps = 1;
+    int sim_method_num_steps = 20;
     for (int i = 0; i < N; i++)
         ocp_nlp_solver_opts_set_at_stage(nlp_config, capsule->nlp_opts, i, "dynamics_num_steps", &sim_method_num_steps);
 
@@ -663,6 +680,17 @@ int hysteresis_model_acados_create_with_discretization(hysteresis_model_solver_c
 
 
 
+    // initialize parameters to nominal value
+    double* p = calloc(NP, sizeof(double));
+    
+    p[0] = 0.5;
+    p[1] = -0.1;
+
+    for (int i = 0; i <= N; i++)
+    {
+        hysteresis_model_acados_update_params(capsule, i, p, NP);
+    }
+    free(p);
 
     status = ocp_nlp_precompute(capsule->nlp_solver, nlp_in, nlp_out);
 
@@ -680,12 +708,48 @@ int hysteresis_model_acados_update_params(hysteresis_model_solver_capsule * caps
 {
     int solver_status = 0;
 
-    int casadi_np = 0;
+    int casadi_np = 2;
     if (casadi_np != np) {
         printf("acados_update_params: trying to set %i parameters for external functions."
             " External function has %i parameters. Exiting.\n", np, casadi_np);
         exit(1);
     }
+    const int N = capsule->nlp_solver_plan->N;
+    if (stage < N && stage >= 0)
+    {
+        capsule->forw_vde_casadi[stage].set_param(capsule->forw_vde_casadi+stage, p);
+        capsule->expl_ode_fun[stage].set_param(capsule->expl_ode_fun+stage, p);
+    
+
+        // constraints
+    
+
+        // cost
+        if (stage == 0)
+        {
+            capsule->cost_y_0_fun.set_param(&capsule->cost_y_0_fun, p);
+            capsule->cost_y_0_fun_jac_ut_xt.set_param(&capsule->cost_y_0_fun_jac_ut_xt, p);
+            capsule->cost_y_0_hess.set_param(&capsule->cost_y_0_hess, p);
+        }
+        else // 0 < stage < N
+        {
+            capsule->cost_y_fun[stage-1].set_param(capsule->cost_y_fun+stage-1, p);
+            capsule->cost_y_fun_jac_ut_xt[stage-1].set_param(capsule->cost_y_fun_jac_ut_xt+stage-1, p);
+            capsule->cost_y_hess[stage-1].set_param(capsule->cost_y_hess+stage-1, p);
+        }
+    }
+
+    else // stage == N
+    {
+        // terminal shooting node has no dynamics
+        // cost
+        capsule->cost_y_e_fun.set_param(&capsule->cost_y_e_fun, p);
+        capsule->cost_y_e_fun_jac_ut_xt.set_param(&capsule->cost_y_e_fun_jac_ut_xt, p);
+        capsule->cost_y_e_hess.set_param(&capsule->cost_y_e_hess, p);
+        // constraints
+    
+    }
+
 
     return solver_status;
 }
@@ -719,15 +783,28 @@ int hysteresis_model_acados_free(hysteresis_model_solver_capsule * capsule)
     // dynamics
     for (int i = 0; i < N; i++)
     {
-        external_function_param_casadi_free(&capsule->impl_dae_fun[i]);
-        external_function_param_casadi_free(&capsule->impl_dae_fun_jac_x_xdot_z[i]);
-        external_function_param_casadi_free(&capsule->impl_dae_jac_x_xdot_u_z[i]);
+        external_function_param_casadi_free(&capsule->forw_vde_casadi[i]);
+        external_function_param_casadi_free(&capsule->expl_ode_fun[i]);
     }
-    free(capsule->impl_dae_fun);
-    free(capsule->impl_dae_fun_jac_x_xdot_z);
-    free(capsule->impl_dae_jac_x_xdot_u_z);
+    free(capsule->forw_vde_casadi);
+    free(capsule->expl_ode_fun);
 
     // cost
+    external_function_param_casadi_free(&capsule->cost_y_0_fun);
+    external_function_param_casadi_free(&capsule->cost_y_0_fun_jac_ut_xt);
+    external_function_param_casadi_free(&capsule->cost_y_0_hess);
+    for (int i = 0; i < N - 1; i++)
+    {
+        external_function_param_casadi_free(&capsule->cost_y_fun[i]);
+        external_function_param_casadi_free(&capsule->cost_y_fun_jac_ut_xt[i]);
+        external_function_param_casadi_free(&capsule->cost_y_hess[i]);
+    }
+    free(capsule->cost_y_fun);
+    free(capsule->cost_y_fun_jac_ut_xt);
+    free(capsule->cost_y_hess);
+    external_function_param_casadi_free(&capsule->cost_y_e_fun);
+    external_function_param_casadi_free(&capsule->cost_y_e_fun_jac_ut_xt);
+    external_function_param_casadi_free(&capsule->cost_y_e_hess);
 
     // constraints
 

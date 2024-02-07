@@ -132,7 +132,7 @@ def sim_example():
 
     # alpha_ten, alpha_h, rho, sigma, gamma_tension, n
 
-    obj = Hysteresis_MPC_Controller(0.5, 0.2, 3.0, 0.7, 5.0, 5)
+    obj = Hysteresis_MPC_Controller(0.5, -0.1, 1.2, 0.500, 3.0, 5)
     solver, integrator = obj.createSolver(np.zeros(2), 30, 40, 1, 2)
 
     x0 = np.zeros(2)
@@ -157,7 +157,7 @@ def sim_example():
 
         if i > 500 : 
 
-            u = 0
+            u = 10
             # u = 0
 
         else: 
@@ -177,7 +177,7 @@ def sim_example():
 
 
 
-    plt.plot(states[:, 0], states[:, 0] - states[:, 2])
+    plt.plot(states[:, 0], states[:, 2])
 
     plt.show()
 

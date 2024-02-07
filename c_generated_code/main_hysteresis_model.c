@@ -120,6 +120,16 @@ int main()
     // initial value for control input
     double u0[NU];
     u0[0] = 0.0;
+    // set parameters
+    double p[NP];
+    p[0] = 0.5;
+    p[1] = -0.1;
+
+    for (int ii = 0; ii <= N; ii++)
+    {
+        hysteresis_model_acados_update_params(acados_ocp_capsule, ii, p, NP);
+    }
+  
 
     // prepare evaluation
     int NTIMINGS = 1;

@@ -270,7 +270,7 @@ def sim_example():
 
         simU[i, :] = u
 
-        print(simU[i, :])
+        # print(simU[i, :])
 
         integrator.set('p', p)
         integrator.set('x', x0)
@@ -278,7 +278,7 @@ def sim_example():
         integrator.solve()
         x0 = integrator.get('x')
         z = integrator.get('z')
-        print("states, z: ", x0, z, z/x0[0])
+        # print("states, z: ", x0, z, z/x0[0])
         # print(integrator.get('time_tot'))
         states[i+1,0:3] = x0
         states[i+1, 3] = z

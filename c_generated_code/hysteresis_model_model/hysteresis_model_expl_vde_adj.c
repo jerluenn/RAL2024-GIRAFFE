@@ -54,11 +54,11 @@ static const casadi_int casadi_s2[7] = {3, 1, 0, 3, 0, 1, 2};
 /* hysteresis_model_expl_vde_adj:(i0[2],i1[2],i2,i3[2])->(o0[3]) */
 static int casadi_f0(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem) {
   casadi_real a0, a1, a10, a11, a12, a13, a14, a15, a2, a3, a4, a5, a6, a7, a8, a9;
-  a0=2.0000000000000001e-01;
-  a1=3.;
+  a0=3.3333333333333331e-01;
+  a1=1.2000000000000000e+00;
   a2=arg[1]? arg[1][1] : 0;
   a1=(a1*a2);
-  a2=-3.0000000000000004e-01;
+  a2=-5.0000000000000000e-01;
   a3=arg[0]? arg[0][1] : 0;
   a4=casadi_sq(a3);
   a5=1.0000000000000000e-08;
@@ -74,7 +74,7 @@ static int casadi_f0(const casadi_real** arg, casadi_real** res, casadi_int* iw,
   a9=(a9-a10);
   a9=(a0*a9);
   a10=(a9+a9);
-  a11=6.9999999999999996e-01;
+  a11=5.0000000000000000e-01;
   a12=casadi_sq(a3);
   a12=(a12+a5);
   a13=casadi_sq(a12);

@@ -83,6 +83,8 @@ class Hysteresis_MPC_Controller:
         ocp.cost.yref  = np.zeros((2, ))
         ocp.cost.yref_e = np.zeros((1, ))
 
+        ocp.constraints.idxbu = np.array([0])
+
         ocp.constraints.lbu = np.array([-max_tension])
         ocp.constraints.ubu = np.array([max_tension])
 
@@ -90,7 +92,6 @@ class Hysteresis_MPC_Controller:
         ocp.cost.W_e = np.diag([100])
 
         ocp.constraints.x0 = x0
-        ocp.constraints.idxbu = np.array([0])
 
         ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM' # FULL_CONDENSING_QPOASES
         ocp.solver_options.hessian_approx = 'GAUSS_NEWTON'
@@ -141,7 +142,7 @@ def sim_example():
 
     # alpha_ten, alpha_h, rho, sigma, gamma_tension, n
 
-    beta = np.array([0.670, 0.118, 0.094, 0.115, 0.21, 0.112, 0.0])     
+    beta = np.array([5.870, 1.118, 0.094, 0.115, 2.21, 0.212, 0.0])     
 
     obj = Hysteresis_MPC_Controller(0.5, 0.4, -1.5, 0.7, 1.0, 3, beta)
     solver, integrator = obj.createSolver(np.zeros(2), 30, 40, 1, 4)
@@ -157,7 +158,7 @@ def sim_example():
 
     u = np.ndarray(num_sim_time)
     u[0:int(num_sim_time/3)] = 8
-    u[int(num_sim_time/3):int(2*num_sim_time/3)] = -0.2
+    u[int(num_sim_time/3):int(2*num_sim_time/3)] = -0.5
     u[int(2*num_sim_time/3):int(num_sim_time)] = 4
 
     for i in range(num_sim_time): 

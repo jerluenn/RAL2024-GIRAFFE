@@ -38,9 +38,9 @@
 #include "acados_c/external_function_interface.h"
 
 #define HYSTERESIS_MODEL_NX     2
-#define HYSTERESIS_MODEL_NZ     1
+#define HYSTERESIS_MODEL_NZ     0
 #define HYSTERESIS_MODEL_NU     1
-#define HYSTERESIS_MODEL_NP     0
+#define HYSTERESIS_MODEL_NP     2
 
 #ifdef __cplusplus
 extern "C" {

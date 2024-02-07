@@ -18,7 +18,7 @@ from scipy.integrate import BDF
 
 class Hysteresis_MPC_Controller: 
 
-    def __init__(self, rho, sigma, gamma_tension, n, gamma, mu, alpha): 
+    def __init__(self, rho, sigma, gamma_tension, n, gamma, mu, alpha, kappa): 
 
         self.rho = rho
         self.sigma = sigma
@@ -27,6 +27,7 @@ class Hysteresis_MPC_Controller:
         self.gamma = gamma 
         self.mu = mu
         self.alpha = alpha
+        self.kappa = kappa
 
     def createModel(self): 
 
@@ -57,10 +58,10 @@ class Hysteresis_MPC_Controller:
 
         h_dot = self.rho*(tension_dot - self.sigma*self.mod_approx(tension_dot)*h*self.mod_approx(h)**(self.n-1) - (self.sigma - 1)*tension_dot*self.mod_approx(h)**self.n)
 
-        f1 = 0
-        f2 = 0
+        f1 = (self.kappa[0]*self.mod_approx(u))/self.kappa[1]
+        f2 = (self.kappa[2]*self.mod_approx(u))/self.kappa[3]
 
-        Ff_expr = self.mod_approx(tension_dot)*((1-self.alpha[0])*Ff_ss + self.alpha[0]*Ff_ss*exp(-f1)) + self.mod_approx(-tension_dot)*((1-self.alpha[1])*Ff_ss + self.alpha[1]*Ff_ss*exp(-f2))
+        Ff_expr = self.step_approx(tension_dot)*((1-self.alpha[0])*Ff_ss + self.alpha[0]*Ff_ss*exp(-f1)) + self.step_approx(-tension_dot)*((1-self.alpha[1])*Ff_ss + self.alpha[1]*Ff_ss*exp(-f2))
 
         f_impl = vertcat(tensiondot - tension_dot, hdot - h_dot, Ff - Ff_expr)
         f_expl = vertcat(tension_dot, self.rho*(tension_dot - self.sigma*self.mod_approx(tension_dot)*h*self.mod_approx(h)**(self.n-1) - (self.sigma - 1)*tension_dot*self.mod_approx(h)**self.n))
@@ -163,9 +164,21 @@ class Hysteresis_MPC_Controller:
 
     def mod_approx(self, x):
 
-        epsilon = 1e-8
+        epsilon = 1e-10
 
         return sqrt(x**2 + epsilon)
+
+    def sgn_approx(self, x): 
+
+        epsilon = 1e-10
+
+        return tanh(x/epsilon)
+
+    def step_approx(self, x): 
+
+        epsilon = 1e-10
+
+        return 0.5 + 0.5*tanh(x/epsilon)
 
 
 
@@ -173,9 +186,10 @@ def sim_example():
 
     # rho, sigma, gamma_tension, n, gamma, mu, alpha
 
-    alpha = np.array([0.5, 0.5])
+    alpha = np.array([0.1, 0.9])
+    kappa = np.array([1, 1, 1, 1])
 
-    obj = Hysteresis_MPC_Controller(7.0, 20.0, 3.0, 4, 0.45, 2, alpha)
+    obj = Hysteresis_MPC_Controller(3.0, 0.7, 3.0, 4, 0.45, 2, alpha, kappa)
     solver, integrator = obj.createSolver(np.zeros(2), 30, 40, 1, 2)
 
     x0 = np.zeros(2)
@@ -221,7 +235,8 @@ def sim_example():
 
 
 
-    plt.plot(states[:, 0], states[:, 2])
+    # plt.plot(states[:, 0], states[:, 2])
+    plt.plot(states[:, 0], states[:, 2]*states[:, 1] + states[:, 0])
 
     plt.show()
 

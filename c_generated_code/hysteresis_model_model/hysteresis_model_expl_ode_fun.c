@@ -52,14 +52,14 @@ static const casadi_int casadi_s1[5] = {1, 1, 0, 1, 0};
 /* hysteresis_model_expl_ode_fun:(i0[2],i1,i2[2])->(o0[2]) */
 static int casadi_f0(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem) {
   casadi_real a0, a1, a2, a3, a4, a5;
-  a0=2.0000000000000001e-01;
+  a0=3.3333333333333331e-01;
   a1=arg[1]? arg[1][0] : 0;
   a2=arg[0]? arg[0][0] : 0;
   a1=(a1-a2);
   a0=(a0*a1);
   if (res[0]!=0) res[0][0]=a0;
-  a1=3.;
-  a2=6.9999999999999996e-01;
+  a1=1.2000000000000000e+00;
+  a2=5.0000000000000000e-01;
   a3=casadi_sq(a0);
   a4=1.0000000000000000e-08;
   a3=(a3+a4);
@@ -72,7 +72,7 @@ static int casadi_f0(const casadi_real** arg, casadi_real** res, casadi_int* iw,
   a5=casadi_sq(a5);
   a2=(a2*a5);
   a2=(a0-a2);
-  a5=-3.0000000000000004e-01;
+  a5=-5.0000000000000000e-01;
   a5=(a5*a0);
   a3=casadi_sq(a3);
   a3=(a3+a4);
