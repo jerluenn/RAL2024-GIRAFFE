@@ -35,7 +35,7 @@ class Controller:
         v = SX.sym('v', self.num_elements)
         Ff = SX.sym('Ff', self.num_elements)
         T_in = SX.sym('T_in', 1)
-        F_c = SX.sym('F_c', 1)
+        F_c = SX.sym('F_c', self.num_elements)
 
         gamma = SX.sym('gamma')
         mu = SX.sym('mu')
@@ -73,6 +73,17 @@ class Controller:
         Ff_dot = self.sigma*(v - Ff*self.mod_approx(v)/(F_c + 1e-8))
         # Ff_dot = SX.zeros(self.num_elements)
 
+        tension_states = SX.zeros(self.num_elements+1)
+
+        tension_states[0] = T_in
+        tension_states[-1] = self.k*(p[-1])
+
+        for i in range(self.num_elements - 1): 
+            
+            tension_states[i+1] = self.k*(p[i] - p[i+1])
+
+        F_c_DAE = F_c - tension_states[1:self.num_elements+1]*mu*gamma/(self.num_elements)
+
 
         impl_terms = SX.sym('impl_terms', self.num_elements*3)
 
@@ -80,7 +91,7 @@ class Controller:
         x = vertcat(p, v, Ff)
         z = F_c
         f_expl = vertcat(p_dot, v_dot, Ff_dot)
-        f_impl = vertcat(impl_terms - f_expl, F_c - T_in*exp(-mu*gamma*self.sgn_approx(v[0])))
+        f_impl = vertcat(impl_terms - f_expl, F_c_DAE)
 
         params = vertcat(gamma, mu)
 
@@ -171,7 +182,7 @@ class Controller:
         ocp.solver_options.integrator_type = 'IRK'
         ocp.solver_options.sim_method_newton_iter = 10
         ocp.solver_options.sim_method_num_stages = 4
-        ocp.solver_options.sim_method_num_steps = 10
+        ocp.solver_options.sim_method_num_steps = 5
         ocp.solver_options.levenberg_marquardt = 1.0
 
         if RTI:
@@ -200,7 +211,7 @@ def sim_example():
 
     length = 2
     b = 100
-    num_elements = 5
+    num_elements = 2
     radius = 0.4*1e-3
     density = 26.0
     area = np.pi*radius**2
@@ -208,11 +219,11 @@ def sim_example():
     mass_per_element = mass/num_elements
     E = 1.5e11
     k = E*area/length
-    sigma = 1.5e3
+    sigma = 7.5e6
     mu = 0.45
-    gamma = 0.1
+    gamma = 0.5
 
-    Tf = 0.001
+    Tf = 0.04
     N = 40
 
     step_size = Tf/N
@@ -227,7 +238,7 @@ def sim_example():
     solver, integrator = obj.createSolver(np.zeros(7), 30, N, 1, Tf)
 
     x0 = np.zeros(3*num_elements)
-    num_sim_time = 2000
+    num_sim_time = 5000
     
     states = np.zeros((num_sim_time+1, 3*num_elements))
     simU = np.zeros((num_sim_time, 1))
@@ -235,8 +246,8 @@ def sim_example():
     t_array = np.zeros(num_sim_time)
     t = 0 
 
-    u0 = np.linspace(0, 10, int(num_sim_time/2))
-    u1 = np.linspace(10, 0, int(num_sim_time/2))
+    u0 = np.linspace(0.0000, 10, int(num_sim_time/2 + 1))
+    u1 = np.linspace(10, 0.0000, int(num_sim_time/2))
 
     for i in range(num_sim_time): 
 
@@ -250,14 +261,12 @@ def sim_example():
         freq = 0.002
 
         if i > num_sim_time/2 : 
-        # if i > num_sim_time : 
 
-            # u = 5*np.sin(i*freq) + 5
-            u = 0
+            u = u1[int(i-(num_sim_time/2))]
 
         else: 
 
-            u = 10
+            u = u0[i]
 
         simU[i, :] = u
 
@@ -268,8 +277,7 @@ def sim_example():
         integrator.solve()
         x0 = integrator.get('x')
         states[i+1,:] = x0
-
-        # print(x0)
+        print(x0)
 
     tension_states[0:num_sim_time, 0] = simU[:, 0]
     tension_states[:, num_elements] = k*(states[:, num_elements-1])
@@ -287,12 +295,14 @@ def sim_example():
     plt.show()
 
     plt.plot(t_array, states[0:num_sim_time, 2*num_elements:3*num_elements])
+    plt.legend(['Ff' + str(i) for i in range(num_elements)])
     plt.show()
 
     plt.plot(t_array, tension_states[0:num_sim_time, :])
+    plt.legend(['Tension' + str(i) for i in range(num_elements+1)])
     plt.show()
-
-    plt.plot(tension_states[0:num_sim_time, 1], tension_states[0:num_sim_time, -1])
+    
+    plt.plot(tension_states[0:num_sim_time, 0], tension_states[0:num_sim_time, -1])
     plt.show()
 
 sim_example()

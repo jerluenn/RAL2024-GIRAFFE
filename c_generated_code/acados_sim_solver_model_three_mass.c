@@ -77,7 +77,7 @@ int model_three_mass_acados_sim_create(sim_solver_capsule * capsule)
     bool tmp_bool;
 
     
-    double Tsim = 0.0005;
+    double Tsim = 0.0000025;
 
     
     // explicit ode

@@ -77,7 +77,7 @@ int mass_spring_damper_friction_acados_sim_create(sim_solver_capsule * capsule)
     bool tmp_bool;
 
     
-    double Tsim = 0.000025;
+    double Tsim = 0.001;
 
     
     capsule->sim_impl_dae_fun = (external_function_param_casadi *) malloc(sizeof(external_function_param_casadi));
@@ -139,7 +139,7 @@ int mass_spring_damper_friction_acados_sim_create(sim_solver_capsule * capsule)
  
     tmp_int = 4;
     sim_opts_set(mass_spring_damper_friction_sim_config, mass_spring_damper_friction_sim_opts, "num_stages", &tmp_int);
-    tmp_int = 10;
+    tmp_int = 5;
     sim_opts_set(mass_spring_damper_friction_sim_config, mass_spring_damper_friction_sim_opts, "num_steps", &tmp_int);
     tmp_bool = 0;
     sim_opts_set(mass_spring_damper_friction_sim_config, mass_spring_damper_friction_sim_opts, "jac_reuse", &tmp_bool);
@@ -171,7 +171,7 @@ int mass_spring_damper_friction_acados_sim_create(sim_solver_capsule * capsule)
     /* initialize parameter values */
     double* p = calloc(np, sizeof(double));
     
-    p[0] = 0.1;
+    p[0] = 0.5;
     p[1] = 0.45;
 
     mass_spring_damper_friction_acados_sim_update_params(capsule, p, np);
@@ -180,8 +180,8 @@ int mass_spring_damper_friction_acados_sim_create(sim_solver_capsule * capsule)
 
     /* initialize input */
     // x
-    double x0[15];
-    for (int ii = 0; ii < 15; ii++)
+    double x0[6];
+    for (int ii = 0; ii < 6; ii++)
         x0[ii] = 0.0;
 
     sim_in_set(mass_spring_damper_friction_sim_config, mass_spring_damper_friction_sim_dims,
@@ -197,11 +197,11 @@ int mass_spring_damper_friction_acados_sim_create(sim_solver_capsule * capsule)
                mass_spring_damper_friction_sim_in, "u", u0);
 
     // S_forw
-    double S_forw[240];
-    for (int ii = 0; ii < 240; ii++)
+    double S_forw[42];
+    for (int ii = 0; ii < 42; ii++)
         S_forw[ii] = 0.0;
-    for (int ii = 0; ii < 15; ii++)
-        S_forw[ii + ii * 15 ] = 1.0;
+    for (int ii = 0; ii < 6; ii++)
+        S_forw[ii + ii * 6 ] = 1.0;
 
 
     sim_in_set(mass_spring_damper_friction_sim_config, mass_spring_damper_friction_sim_dims,

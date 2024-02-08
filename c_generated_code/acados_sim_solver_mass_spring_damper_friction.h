@@ -37,8 +37,8 @@
 #include "acados_c/sim_interface.h"
 #include "acados_c/external_function_interface.h"
 
-#define MASS_SPRING_DAMPER_FRICTION_NX     15
-#define MASS_SPRING_DAMPER_FRICTION_NZ     1
+#define MASS_SPRING_DAMPER_FRICTION_NX     6
+#define MASS_SPRING_DAMPER_FRICTION_NZ     2
 #define MASS_SPRING_DAMPER_FRICTION_NU     1
 #define MASS_SPRING_DAMPER_FRICTION_NP     2
 

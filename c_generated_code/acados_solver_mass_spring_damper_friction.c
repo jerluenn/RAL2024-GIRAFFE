@@ -226,7 +226,7 @@ int mass_spring_damper_friction_acados_create_with_discretization(mass_spring_da
     nbx[0]  = NBX0;
     nsbx[0] = 0;
     ns[0] = NS - NSBX;
-    nbxe[0] = 15;
+    nbxe[0] = 6;
     ny[0] = NY0;
 
     // terminal - common
@@ -335,7 +335,7 @@ int mass_spring_damper_friction_acados_create_with_discretization(mass_spring_da
     if (new_time_steps) {
         mass_spring_damper_friction_acados_update_time_steps(capsule, N, new_time_steps);
     } else {// all time_steps are identical
-        double time_step = 0.000025;
+        double time_step = 0.001;
         for (int i = 0; i < N; i++)
         {
             ocp_nlp_in_set(nlp_config, nlp_dims, nlp_in, i, "Ts", &time_step);
@@ -366,15 +366,6 @@ int mass_spring_damper_friction_acados_create_with_discretization(mass_spring_da
     W_0[4+(NY0) * 4] = 1;
     W_0[5+(NY0) * 5] = 1;
     W_0[6+(NY0) * 6] = 1;
-    W_0[7+(NY0) * 7] = 1;
-    W_0[8+(NY0) * 8] = 1;
-    W_0[9+(NY0) * 9] = 1;
-    W_0[10+(NY0) * 10] = 1;
-    W_0[11+(NY0) * 11] = 1;
-    W_0[12+(NY0) * 12] = 1;
-    W_0[13+(NY0) * 13] = 1;
-    W_0[14+(NY0) * 14] = 1;
-    W_0[15+(NY0) * 15] = 1;
     ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, 0, "W", W_0);
     free(W_0);
 
@@ -395,15 +386,6 @@ int mass_spring_damper_friction_acados_create_with_discretization(mass_spring_da
     W[4+(NY) * 4] = 1;
     W[5+(NY) * 5] = 1;
     W[6+(NY) * 6] = 1;
-    W[7+(NY) * 7] = 1;
-    W[8+(NY) * 8] = 1;
-    W[9+(NY) * 9] = 1;
-    W[10+(NY) * 10] = 1;
-    W[11+(NY) * 11] = 1;
-    W[12+(NY) * 12] = 1;
-    W[13+(NY) * 13] = 1;
-    W[14+(NY) * 14] = 1;
-    W[15+(NY) * 15] = 1;
 
     double* yref = calloc(NY, sizeof(double));
     // change only the non-zero elements:
@@ -426,15 +408,6 @@ int mass_spring_damper_friction_acados_create_with_discretization(mass_spring_da
     Vx_0[3+(NY0) * 3] = 1;
     Vx_0[4+(NY0) * 4] = 1;
     Vx_0[5+(NY0) * 5] = 1;
-    Vx_0[6+(NY0) * 6] = 1;
-    Vx_0[7+(NY0) * 7] = 1;
-    Vx_0[8+(NY0) * 8] = 1;
-    Vx_0[9+(NY0) * 9] = 1;
-    Vx_0[10+(NY0) * 10] = 1;
-    Vx_0[11+(NY0) * 11] = 1;
-    Vx_0[12+(NY0) * 12] = 1;
-    Vx_0[13+(NY0) * 13] = 1;
-    Vx_0[14+(NY0) * 14] = 1;
     ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, 0, "Vx", Vx_0);
     free(Vx_0);
 
@@ -460,15 +433,6 @@ int mass_spring_damper_friction_acados_create_with_discretization(mass_spring_da
     Vx[3+(NY) * 3] = 1;
     Vx[4+(NY) * 4] = 1;
     Vx[5+(NY) * 5] = 1;
-    Vx[6+(NY) * 6] = 1;
-    Vx[7+(NY) * 7] = 1;
-    Vx[8+(NY) * 8] = 1;
-    Vx[9+(NY) * 9] = 1;
-    Vx[10+(NY) * 10] = 1;
-    Vx[11+(NY) * 11] = 1;
-    Vx[12+(NY) * 12] = 1;
-    Vx[13+(NY) * 13] = 1;
-    Vx[14+(NY) * 14] = 1;
     for (int i = 1; i < N; i++)
     {
         ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, i, "Vx", Vx);
@@ -519,15 +483,6 @@ int mass_spring_damper_friction_acados_create_with_discretization(mass_spring_da
     W_e[3+(NYN) * 3] = 1;
     W_e[4+(NYN) * 4] = 1;
     W_e[5+(NYN) * 5] = 1;
-    W_e[6+(NYN) * 6] = 1;
-    W_e[7+(NYN) * 7] = 1;
-    W_e[8+(NYN) * 8] = 1;
-    W_e[9+(NYN) * 9] = 1;
-    W_e[10+(NYN) * 10] = 1;
-    W_e[11+(NYN) * 11] = 1;
-    W_e[12+(NYN) * 12] = 1;
-    W_e[13+(NYN) * 13] = 1;
-    W_e[14+(NYN) * 14] = 1;
     ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, N, "W", W_e);
     free(W_e);
     double* Vx_e = calloc(NYN*NX, sizeof(double));
@@ -539,15 +494,6 @@ int mass_spring_damper_friction_acados_create_with_discretization(mass_spring_da
     Vx_e[3+(NYN) * 3] = 1;
     Vx_e[4+(NYN) * 4] = 1;
     Vx_e[5+(NYN) * 5] = 1;
-    Vx_e[6+(NYN) * 6] = 1;
-    Vx_e[7+(NYN) * 7] = 1;
-    Vx_e[8+(NYN) * 8] = 1;
-    Vx_e[9+(NYN) * 9] = 1;
-    Vx_e[10+(NYN) * 10] = 1;
-    Vx_e[11+(NYN) * 11] = 1;
-    Vx_e[12+(NYN) * 12] = 1;
-    Vx_e[13+(NYN) * 13] = 1;
-    Vx_e[14+(NYN) * 14] = 1;
     ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, N, "Vx", Vx_e);
     free(Vx_e);
 
@@ -565,15 +511,6 @@ int mass_spring_damper_friction_acados_create_with_discretization(mass_spring_da
     idxbx0[3] = 3;
     idxbx0[4] = 4;
     idxbx0[5] = 5;
-    idxbx0[6] = 6;
-    idxbx0[7] = 7;
-    idxbx0[8] = 8;
-    idxbx0[9] = 9;
-    idxbx0[10] = 10;
-    idxbx0[11] = 11;
-    idxbx0[12] = 12;
-    idxbx0[13] = 13;
-    idxbx0[14] = 14;
 
     double* lubx0 = calloc(2*NBX0, sizeof(double));
     double* lbx0 = lubx0;
@@ -588,7 +525,7 @@ int mass_spring_damper_friction_acados_create_with_discretization(mass_spring_da
 
 
     // idxbxe_0
-    int* idxbxe_0 = malloc(15 * sizeof(int));
+    int* idxbxe_0 = malloc(6 * sizeof(int));
     
     idxbxe_0[0] = 0;
     idxbxe_0[1] = 1;
@@ -596,15 +533,6 @@ int mass_spring_damper_friction_acados_create_with_discretization(mass_spring_da
     idxbxe_0[3] = 3;
     idxbxe_0[4] = 4;
     idxbxe_0[5] = 5;
-    idxbxe_0[6] = 6;
-    idxbxe_0[7] = 7;
-    idxbxe_0[8] = 8;
-    idxbxe_0[9] = 9;
-    idxbxe_0[10] = 10;
-    idxbxe_0[11] = 11;
-    idxbxe_0[12] = 12;
-    idxbxe_0[13] = 13;
-    idxbxe_0[14] = 14;
     ocp_nlp_constraints_model_set(nlp_config, nlp_dims, nlp_in, 0, "idxbxe", idxbxe_0);
     free(idxbxe_0);
 
@@ -692,7 +620,7 @@ int mass_spring_damper_friction_acados_create_with_discretization(mass_spring_da
 
     // set up sim_method_num_steps
     // all sim_method_num_steps are identical
-    int sim_method_num_steps = 10;
+    int sim_method_num_steps = 5;
     for (int i = 0; i < N; i++)
         ocp_nlp_solver_opts_set_at_stage(nlp_config, capsule->nlp_opts, i, "dynamics_num_steps", &sim_method_num_steps);
 
@@ -770,7 +698,7 @@ int mass_spring_damper_friction_acados_create_with_discretization(mass_spring_da
     // initialize parameters to nominal value
     double* p = calloc(NP, sizeof(double));
     
-    p[0] = 0.1;
+    p[0] = 0.5;
     p[1] = 0.45;
 
     for (int i = 0; i <= N; i++)

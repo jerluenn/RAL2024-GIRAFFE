@@ -51,8 +51,8 @@ class Controller:
             (F_act - self.b[0]*(x1dot) - self.k*(x1 - x3))/self.m[0], 
             # 0,
             (- self.k_env*x2 - self.b[1]*(x2dot) - self.k*(x2 - x3))/self.m[1], 
-            (- Ff - self.b[2]*(x3dot) - self.k*(-x1 - x2 + 2*x3))/self.m[2], 
-            self.sigma*(x3dot - ((Ff*self.mod_approx(x3dot))/(self.k*(x1-x3)*(1 - exp(-self.mu*gamma)) + 1e-6)))
+            (Ff - self.b[2]*(x3dot) - self.k*(-x1 - x2 + 2*x3))/self.m[2], 
+            self.sigma*(x3dot - ((Ff*self.mod_approx(x3dot))/(self.k*(x2-x1)*self.mu*gamma + 1e-6)))
         ) 
 
         x = vertcat(x1, x2, x3, x1dot, x2dot, x3dot, Ff)
@@ -147,21 +147,26 @@ def sim_example():
 
     # b, m, mu, gamma, k, sigma
 
-    b = np.array([350, 1000, 1000])
-    m = np.array([0.2, 1.5, 0.05])
+    b = np.array([3500, 100, 1000])
+    m = np.array([2.0, 1.3e-5, 0.05])
     mu = 0.45
     gamma = 1
-    k = 3e5
-    sigma = 1.2e5
+    k = 7.54e4
+    sigma = 1.2e3
     k_env = 500
     ref_tension1 = 10
     ref_tension2 = 0.5
 
+    Tf = 0.0001
+    N = 40 
+
+    time_step = Tf/N
+
     obj = Controller(b, m, mu, gamma, k, sigma, k_env)
-    solver, integrator = obj.createSolver(np.zeros(7), 30, 40, 1, 0.02)
+    solver, integrator = obj.createSolver(np.zeros(7), 30, N, 1, Tf)
 
     x0 = np.array([0.0, 0.0, 0.0, 0, 0, 0, 0])
-    num_sim_time = 1500
+    num_sim_time = 50000
     
     states = np.zeros((num_sim_time+1, 7))
     simU = np.zeros((num_sim_time, 1))
@@ -170,7 +175,7 @@ def sim_example():
 
     for i in range(num_sim_time): 
 
-        t += 0.05
+        t += time_step
         t_array[i] = t
 
         # solver.set(0, 'lbx', x0)

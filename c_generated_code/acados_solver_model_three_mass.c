@@ -415,7 +415,7 @@ int model_three_mass_acados_create_with_discretization(model_three_mass_solver_c
     if (new_time_steps) {
         model_three_mass_acados_update_time_steps(capsule, N, new_time_steps);
     } else {// all time_steps are identical
-        double time_step = 0.0005;
+        double time_step = 0.0000025;
         for (int i = 0; i < N; i++)
         {
             ocp_nlp_in_set(nlp_config, nlp_dims, nlp_in, i, "Ts", &time_step);
