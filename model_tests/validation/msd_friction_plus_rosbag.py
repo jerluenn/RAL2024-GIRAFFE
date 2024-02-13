@@ -69,11 +69,6 @@ class Controller:
         T_in_array = SX.zeros(self.num_elements+1)
         T_in_array[0] = T_in
 
-        p_dot = v 
-        v_dot = inv(M)@(-B@v + D@(K@p + T_in_array) - Ff) 
-        Ff_dot = self.sigma*(v - Ff*self.mod_approx(v)/(F_c + 1e-10))
-        # Ff_dot = SX.zeros(self.num_elements)
-
         tension_states = SX.zeros(self.num_elements+1)
 
         tension_states[0] = T_in
@@ -83,7 +78,16 @@ class Controller:
             
             tension_states[i+1] = self.k*(p[i] - p[i+1])
 
-        F_c_DAE = F_c - tension_states[1:self.num_elements+1]*mu*gamma/(self.num_elements)
+        F_c_DAE = F_c - tension_states[0:self.num_elements]*mu*gamma/(self.num_elements)
+
+        p_dot = v 
+        v_dot = inv(M)@(-B@v + D@(K@p + T_in_array) - Ff) 
+        Ff_dot = self.sigma*(v - Ff*self.mod_approx(v)/(F_c + 1e-10))
+        # Ff_dot = SX.zeros(self.num_elements)
+
+
+
+
 
 
         impl_terms = SX.sym('impl_terms', self.num_elements*3)
@@ -113,13 +117,13 @@ class Controller:
 
     def sgn_approx(self, x1): 
 
-        epsilon = 1e-10
+        epsilon = 1e-11
 
         return tanh((x1)/epsilon)
 
     def mod_approx(self, x):
 
-        epsilon = 1e-10
+        epsilon = 1e-11
 
         return sqrt(x**2 + epsilon)
 
@@ -210,9 +214,9 @@ def sim_example():
 
     # b, m, mu, gamma, k, sigma
 
-    length = 2
+    length = 1
     b = 100
-    num_elements = 5
+    num_elements = 3
     radius = 0.6*1e-3
     density = 26.0
     area = np.pi*radius**2
@@ -220,10 +224,10 @@ def sim_example():
     mass_per_element = mass/num_elements
     E = 1.5e11
     k = E*area/length
-    sigma = 5.5e3
-    mu = 0.45
-    gamma = 8.0
-    Tf = 0.0004
+    sigma = 5.5e7
+    mu = 0.058
+    gamma = 11.7
+    Tf = 0.002
     N = 40
 
     step_size = Tf/N
@@ -231,8 +235,11 @@ def sim_example():
     obj = Controller(b, mass_per_element, mu, gamma, k, sigma, num_elements)
     solver, integrator = obj.createSolver(np.zeros(7), 30, N, 1, Tf)
 
+    start_index = 0 
+    end_index = 2700
+
     x0 = np.zeros(3*num_elements)
-    num_sim_time = 3000-1200
+    num_sim_time = end_index - start_index
     
     states = np.zeros((num_sim_time+1, 3*num_elements))
     simU = np.zeros((num_sim_time, 1))
@@ -240,10 +247,15 @@ def sim_example():
     t_array = np.zeros(num_sim_time)
     t = 0 
 
-    df = pd.read_csv("tension_kalmanfiltered.csv")
+    df = pd.read_csv("loadcell_measurements.csv")
     tension_kf_array = df[['Time', 'data_0', 'data_2']].to_numpy()
 
-    u_array = tension_kf_array[1200:3000, 1]*1e-3
+    u_array = tension_kf_array[start_index:end_index, 1]*1e-3*9.81
+
+    # plt.plot(tension_kf_array[0:1000, 0], tension_kf_array[300:1000, 2])
+    # plt.show()
+
+    t0 = time.time()
 
     for i in range(num_sim_time): 
 
@@ -261,13 +273,14 @@ def sim_example():
         integrator.set('x', x0)
         integrator.set('u', simU[i, :])
         integrator.set('p', np.array([gamma, mu]))
-        print("F_c", integrator.get('z'))
-        print("u", u)
-        print("velocity", states[i, num_elements:2*num_elements])
+        # print("F_c", integrator.get('z'))
+        # print("u", u)
+        # print("velocity", states[i, num_elements:2*num_elements])
         integrator.solve()
         x0 = integrator.get('x')
         states[i+1,:] = x0
         
+    print("Total time taken: ", time.time() - t0)
 
     tension_states[0:num_sim_time, 0] = simU[:, 0]
     tension_states[:, num_elements] = k*(states[:, num_elements-1])
@@ -290,7 +303,14 @@ def sim_example():
     plt.show()
     
     plt.plot(tension_states[0:num_sim_time, 0], tension_states[0:num_sim_time, -1])
-    plt.plot(tension_kf_array[1200:3000, 1]*1e-3, tension_kf_array[1200:3000, 2]*1e-3)
+    plt.plot(tension_kf_array[start_index:end_index, 1]*1e-3*9.81, tension_kf_array[start_index:end_index, 2]*1e-3*9.81)
+    plt.title('Comparison')
+    plt.show()
+
+    plt.plot(t_array, tension_states[0:num_sim_time, -1])
+    plt.plot(t_array, tension_kf_array[start_index:end_index, 2]*1e-3*9.81)
+    plt.plot(t_array, tension_states[0:num_sim_time, 0])
+    # plt.plot(t_array, tension_kf_array[start_index:end_index, 2]*1e-3*9.81)
     plt.title('Comparison')
     plt.show()
 
