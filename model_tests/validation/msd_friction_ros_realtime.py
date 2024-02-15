@@ -190,7 +190,7 @@ class Controller:
         ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM' # FULL_CONDENSING_QPOASES
         ocp.solver_options.hessian_approx = 'GAUSS_NEWTON'
         ocp.solver_options.integrator_type = 'IRK'
-        ocp.solver_options.sim_method_newton_iter = 10
+        ocp.solver_options.sim_method_newton_iter = 20
         ocp.solver_options.sim_method_num_stages = 4
         ocp.solver_options.sim_method_num_steps = 10
         ocp.solver_options.levenberg_marquardt = 1.0
@@ -333,7 +333,14 @@ class simulator:
         self.scaling_factor = 1e-3*9.81
         self.k = k 
         self.u = 0
+        self.actual_output = 0
         self.output_tension_msg = Float64MultiArray()
+        
+        N = 100000
+
+        self.count = 0
+        self.tension_data = np.ndarray((N, 3)) #input, estimated, actual
+        self.time_data = np.ndarray(N)
 
         rospy.init_node('hysteresis_solver')
 
@@ -358,6 +365,7 @@ class simulator:
     def tension_kalmanfiltered_callback(self, data):
 
         self.u = data.data[0]*self.scaling_factor
+        self.actual_output = data.data[2]*self.scaling_factor
 
     def publish_data(self): 
 
@@ -387,9 +395,9 @@ class simulator:
 
     def mainLoop(self): 
 
-        while not rospy.is_shutdown(): 
+        t0 = time.time()
 
-            t0 = time.time()
+        while not rospy.is_shutdown(): 
 
             self.check_negative()
             self.update_integrator()
@@ -397,27 +405,51 @@ class simulator:
 
             time.sleep(0.0001) 
 
-            print(f"Total time (s): {time.time() - t0}")
+            self.time_data[self.count] = time.time() - t0
+            self.tension_data[self.count, 0] = self.u
+            self.tension_data[self.count, 1] = self.output_tension
+            self.tension_data[self.count, 2] = self.actual_output 
+
+            self.count += 1
+
+        plt.plot(self.time_data[0:self.count], self.tension_data[0:self.count, :])
+        plt.show()
 
 
 # sim_example()
 
 if __name__ == "__main__":
 
-    length = 1
+    # length = 1
+    # b = 100
+    # num_elements = 5
+    # radius = 0.6*1e-3
+    # density = 26.0
+    # area = np.pi*radius**2
+    # mass = density*area*length
+    # mass_per_element = mass/num_elements
+    # E = 1.5e11
+    # k = E*area/length
+    # sigma = 5.5e7
+    # mu = 0.058
+    # gamma = 11.7
+    # Tf = 0.0002
+    # N = 40
+
+    length = 4
     b = 100
-    num_elements = 5
+    num_elements = 2
     radius = 0.6*1e-3
     density = 26.0
     area = np.pi*radius**2
     mass = density*area*length
     mass_per_element = mass/num_elements
-    E = 1.5e11
+    E = 3.83e11
     k = E*area/length
-    sigma = 5.5e7
+    sigma = 7.5e8
     mu = 0.058
-    gamma = 11.7
-    Tf = 0.0002
+    gamma = 11
+    Tf = 0.002
     N = 40
 
     step_size = Tf/N
