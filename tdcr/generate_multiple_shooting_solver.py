@@ -44,9 +44,9 @@ class Multiple_Shooting_Solver:
         self.ocp.solver_options.qp_solver_warm_start = 2
         # self.ocp.parameter_values = np.zeros((n_p))
 
-        self.ocp.solver_options.levenberg_marquardt = 0.00001
+        self.ocp.solver_options.levenberg_marquardt = 0.001
 
-        self.ocp.solver_options.regularize_method = 'CONVEXIFY'
+        # self.ocp.solver_options.regularize_method = 'CONVEXIFY'
         self.ocp.solver_options.sim_method_num_stages = 4
         self.ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM' # 
         # PARTIAL_CONDENSING_HPIPM, FULL_CONDENSING_QPOASES, FULL_CONDENSING_HPIPM,
@@ -189,8 +189,8 @@ class Multiple_Shooting_Solver:
     def plot_data(self): 
 
         ax = plt.figure().add_subplot(projection='3d')
-        ax.set_xlim(-0.2, 0.2)
-        ax.set_ylim(-0.2, 0.2)
-        ax.set_zlim(0.4, 0)
+        ax.set_xlim(-0.5, 0.5)
+        ax.set_ylim(-0.5, 0.5)
+        ax.set_zlim(0.5, 0)
         ax.plot(self._state_vector[:, 0], self._state_vector[:, 1], self._state_vector[:, 2])
         plt.show()

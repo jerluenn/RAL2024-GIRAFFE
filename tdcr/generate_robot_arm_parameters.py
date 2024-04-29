@@ -20,9 +20,9 @@ class Robot_Arm_Params:
     def from_hollow_rod(self, _or, _ir, shear_mod, E, rho): 
 
         area = np.pi * _or**2 - np.pi * _ir**2
-        I = ((np.pi * self._or**4) / 4) - \
-            ((np.pi * self._ir**4) / 4)
-        J = 2 * self._I
+        I = ((np.pi * _or**4) / 4) - \
+            ((np.pi * _ir**4) / 4)
+        J = 2 * I
         self._Kse = diag([shear_mod * area,
                         shear_mod * area, E * area])
         self._Kbt = diag([E * I, E *

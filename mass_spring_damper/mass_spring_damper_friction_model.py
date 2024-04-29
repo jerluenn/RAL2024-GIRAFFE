@@ -4,7 +4,6 @@ import numpy as np
 import time
 import os
 
-from pyquaternion import Quaternion
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.animation as animation
@@ -330,4 +329,6 @@ def sim_example():
 
     plt.show()
 
-sim_example()
+if __name__ == "__main__":
+
+    sim_example()

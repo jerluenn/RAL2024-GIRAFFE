@@ -2,7 +2,6 @@ import sys
 import numpy as np
 import time
 from casadi import *
-from pyquaternion import Quaternion
 
 sys.path.insert(0, "..")
 
@@ -23,14 +22,14 @@ robot_arm_1 = Robot_Arm_Params(0.15, 0.05, -0.5, "1", 0.1)
 robot_arm_1.from_solid_rod(0.0005, 100e9, 200e9, 8000)
 robot_arm_1.set_gravity_vector('-z')
 C = np.diag([0.000, 0.000, 0.000])
-Bbt = np.diag([1e-4, 1e-4, 1e-4])
-Bse = Bbt
+# Bbt = np.diag([1e-4, 1e-4, 1e-4])
+# Bse = Bbt
 # Bse = np.zeros((3,3))
 # Bbt = np.zeros((3,3))
-robot_arm_1.set_damping_coefficient(C)
-robot_arm_1.set_damping_factor(Bbt, Bse)
-robot_arm_1.set_tendon_radiuses(tendon_radiuses_list)
-robot_arm_model_1 = Robot_Arm_Model(robot_arm_1)
+# robot_arm_1.set_damping_coefficient(C)
+# robot_arm_1.set_damping_factor(Bbt, Bse)
+# robot_arm_1.set_tendon_radiuses(tendon_radiuses_list)
+# robot_arm_model_1 = Robot_Arm_Model(robot_arm_1)
 
 Q_w_p = 1000e3*np.eye(2)
 Q_w_t = 1e-1*np.eye(3)

@@ -2,7 +2,7 @@ import sys
 import numpy as np
 import time
 from casadi import *
-from pyquaternion import Quaternion
+# from pyquaternion import Quaternion 
 
 sys.path.insert(0, "..")
 

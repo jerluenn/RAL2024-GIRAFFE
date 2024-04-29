@@ -2,7 +2,6 @@ import sys
 import numpy as np
 import time
 from casadi import *
-from pyquaternion import Quaternion
 
 sys.path.insert(0, "../tdcr")
 sys.path.insert(0, "../mass_spring_damper")
