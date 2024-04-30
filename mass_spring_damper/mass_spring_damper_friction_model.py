@@ -25,6 +25,7 @@ class Controller:
         self.k = k 
         self.sigma = sigma
         self.num_elements = num_elements
+        self.createSolver(30, 30, 1, 0.01)
     
     def createModel(self): 
 
@@ -81,7 +82,7 @@ class Controller:
             
             tension_states[i+1] = self.k*(p[i] - p[i+1])
 
-        F_c_DAE = F_c - tension_states[1:self.num_elements+1]*mu*gamma/(self.num_elements)
+        F_c_DAE = F_c - tension_states[1:self.num_elements+1]*self.mu*gamma/(self.num_elements)
 
 
         impl_terms = SX.sym('impl_terms', self.num_elements*3)
@@ -92,7 +93,7 @@ class Controller:
         f_expl = vertcat(p_dot, v_dot, Ff_dot)
         f_impl = vertcat(impl_terms - f_expl, F_c_DAE)
 
-        params = vertcat(gamma, mu)
+        params = vertcat(gamma)
 
         model = AcadosModel()
 
@@ -121,7 +122,7 @@ class Controller:
 
         return sqrt(x**2 + epsilon)
 
-    def createSolver(self, x0, max_tension, N_horizon, RTI, Tf): 
+    def createSolver(self, max_tension, N_horizon, RTI, Tf): 
 
         ocp = AcadosOcp()
 
@@ -190,7 +191,7 @@ class Controller:
 
         ocp.dims.N = N_horizon
         # ocp.solver_options.qp_solver_cond_N = N_horizon
-        ocp.parameter_values = np.hstack((np.ones((self.num_elements, )), self.mu))
+        ocp.parameter_values = np.ones((self.num_elements, ))
 
         # set prediction horizon
         ocp.solver_options.tf = Tf
@@ -209,7 +210,7 @@ class Controller:
     def compute_tension(self, states, u): 
 
         self._tension_states[0] = u
-        self._tension_states[self.num_elements] = self.k*(states[self.num_elements-1])
+        self._tension_states[self.num_elements-1] = self.k*(states[self.num_elements-1])
 
         for i in range(self.num_elements - 1): 
              
@@ -250,14 +251,8 @@ def sim_example():
 
     step_size = Tf/N
 
-    # b = 100
-    # mass_per_element = 0.1 
-    # k = 100 
-    # num_elements = 3
-
-
     obj = Controller(b, mass_per_element, mu, gamma, k, sigma, num_elements)
-    solver, integrator = obj.createSolver(np.zeros(7), 30, N, 1, Tf)
+    solver, integrator = obj.createSolver(30, N, 1, Tf)
 
     x0 = np.zeros(3*num_elements)
     num_sim_time = 3000
@@ -290,7 +285,7 @@ def sim_example():
 
         integrator.set('x', x0)
         integrator.set('u', simU[i, :])
-        params = np.hstack((gamma[0], mu))
+        params = gamma[0]
         integrator.set('p', params)
         print(integrator.get('z'))
         integrator.solve()

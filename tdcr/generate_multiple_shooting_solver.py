@@ -105,6 +105,35 @@ class Multiple_Shooting_Solver:
 
         self._integrator_with_curvature = self._robot_arm_model._create_static_integrator_with_curvature()
 
+    def set_vector_tensions(self, tension): 
+
+        # Tension is in n_tendons * N_integration_steps
+
+        # self._x_lower[13:13+np.size(tension)] = tension
+        # self._x_upper[13:13+np.size(tension)] = tension
+
+        self._x_lower_0[13:13+np.size(tension)] = tension[0, :]
+        self._x_upper_0[13:13+np.size(tension)] = tension[0, :]
+
+        self._solver.constraints_set(0, 'lbx', self._x_lower_0)
+        self._solver.constraints_set(0, 'ubx', self._x_upper_0)
+
+        # self._solver.set(0, 'pi', np.array([]))
+
+        for i in range(self._integration_steps-1): 
+
+            self._x_lower[13:13+np.size(tension)] = tension[i, :]
+            self._x_upper[13:13+np.size(tension)] = tension[i, :]
+
+            self._solver.constraints_set(i+1, 'lbx', self._x_lower)
+            self._solver.constraints_set(i+1, 'ubx', self._x_upper)        
+
+
+        breakpoint()
+
+        print("test")
+
+
     def set_tensions(self, tension): 
 
         self._x_lower[13:13+np.size(tension)] = tension
@@ -120,6 +149,7 @@ class Multiple_Shooting_Solver:
 
             self._solver.constraints_set(i+1, 'lbx', self._x_lower)
             self._solver.constraints_set(i+1, 'ubx', self._x_upper)
+
 
     def initialise_solver(self, initial_solution, tension): 
 
@@ -170,7 +200,7 @@ class Multiple_Shooting_Solver:
 
         for i in range(self._integration_steps + 1): 
 
-            self._state_vector[i, 0:16] = self._solver.get(i, 'x')
+            self._state_vector[i, 0:13+self._robot_arm_model._num_tendons] = self._solver.get(i, 'x')
 
         self.integrate_with_curvature_integrator()
         print("Distal states: ", self._state_vector[-1, :])

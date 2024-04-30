@@ -30,6 +30,7 @@ class Robot_Arm_Model:
         self._id = self._robot_arm_params_obj.get_id()
         self._tendon_radiuses = self._robot_arm_params_obj.get_tendon_radiuses()
         self._tendon_radiuses_numpy = self._robot_arm_params_obj._tendon_radiuses_numpy
+        self._num_tendons = self._tendon_radiuses_numpy.shape[0]
         self._initialise_states()
         self._create_static_integrator()
 
@@ -41,7 +42,7 @@ class Robot_Arm_Model:
         self._eta = SX.sym('self._eta', 4) 
         self._n = SX.sym('n', 3)
         self._m = SX.sym('m', 3)
-        self._tau = SX.sym('tau', 3)
+        self._tau = SX.sym('tau', self._num_tendons)
         self._b = SX.sym('b', 6)
         self._curvature = SX.sym('curvature', 1)
 
