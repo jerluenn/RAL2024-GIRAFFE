@@ -64,6 +64,6 @@ if __name__ == "__main__":
 
     print(TDCR_hysteresis_obj._forward_kinematics_solver._solver.get_residuals())
 
-    breakpoint()
+   
 
     

@@ -56,6 +56,8 @@ class TDCR_With_Hysteresis:
             self._x0_friction_model[:, i] = self._friction_model_integrator_list[i].solve_next_step(u[i:i+1], self._local_curvature, self._x0_friction_model[:, i])
             self._tension[:, i] = self._friction_model_integrator_list[i].compute_tension(self._x0_friction_model[:, i], u[i])
 
+        breakpoint()
+
         # update tension
         self._forward_kinematics_solver.set_vector_tensions(self._tension)
         # solve for shape
